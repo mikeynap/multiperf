@@ -1,21 +1,6 @@
-/* client.c
- * This sample demonstrates a multicast client that works with either
- * IPv4 or IPv6, depending on the multicast address given.
- 
- * Troubleshoot Windows: Make sure you have the IPv6 stack installed by running
- *     >ipv6 install
- *
- * Usage:
- *     client <Multicast IP> <Multicast Port> <Receive Buffer Size>
- *
- * Examples:
- *     >client 224.0.22.1 9210 70000
- *     >client ff15::1 2001 10000
- *
- * Written by tmouse, July 2005
- * http://cboard.cprogramming.com/showthread.php?t=67469
- *
- * Modified to run multi-platform by Christian Beier <dontmind@freeshell.org>.
+/* 
+ * Michael Napolitano (https://github.com/tldr193/) 2016(c)
+ * Parts of run_subtest were lovingly borrowed from Christian Beier <dontmind@freeshell.org>.
  */
 
 
@@ -27,6 +12,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#ifdef __MACH__
+#include "mach_gettime.h"
+#endif
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -78,7 +66,6 @@ int receiver(int n_addr, int n_stream, int test_inc, char *start_addr, int start
 	if (test_inc < 0) test_inc *= -1;
 	if (test_inc > n_addr) test_inc = n_addr;
 	
-	int n_thread = n_addr * n_stream;
 	int n_tests =  3 + n_addr/(test_inc + 1);
 	char **csv = malloc(sizeof(char *) * n_tests);
 	McastStat *test_results[n_tests];
@@ -108,7 +95,7 @@ int receiver(int n_addr, int n_stream, int test_inc, char *start_addr, int start
 	}
 	
 	print_free_csv_results(csv, ind, stdout);
-	
+	return 0;
 	
 }
 
@@ -126,14 +113,14 @@ void csv_results(int n_addr, int n_stream, McastStat *stat, char **output){
 	*output = malloc(sizeof(char) * 200);
 	char *o = *output;
 	McastJitterStat *j = stat->jstat;
-	sprintf(o, "%d,%d,%f\%,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f", n_addr, n_stream, computeLoss(stat) * 100, computeBitrate(stat), computeBitrate(stat) * n_addr * n_stream, 
+	sprintf(o, "%d,%d,%f%%,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f", n_addr, n_stream, computeLoss(stat) * 100, computeBitrate(stat), computeBitrate(stat) * n_addr * n_stream, 
 													 stat->rollingJitter, j->min, j->q1, j->median, j->q3, j->max, j->stddev, j->mean);
 	
 	
 }
 
 void disp_results(int n_addr, int n_stream, McastStat *stat){
-	printf("Packet Loss: %.3f\%, Average Bitrate/stream: %.3f mbps, Aggregate Bitrate: %.3f mbps\n", computeLoss(stat) * 100, computeBitrate(stat),computeBitrate(stat)*n_addr*n_stream);
+	printf("Packet Loss: %.3f%%, Average Bitrate/stream: %.3f mbps, Aggregate Bitrate: %.3f mbps\n", computeLoss(stat) * 100, computeBitrate(stat),computeBitrate(stat)*n_addr*n_stream);
 	McastJitterStat *j = stat->jstat;
 	printf("Jitter Stats: Rolling: %f, Min: %f, Q1: %f, Med:%f, Q3: %f, Max: %f, Stddev: %f, Mean: %f\n\n",stat->rollingJitter, j->min, j->q1, j->median, j->q3, j->max, j->stddev, j->mean);
 }
@@ -175,7 +162,6 @@ int run_tests(int n_addr, int n_stream, char *start_addr, int startPort, int buf
 	}
 	
 	for (i = 0; i < n_thread; i++){	
-		int k = 0;
 		McastStat *stat = thr_data[i].stat;
 		
 		tres->rcvd += stat->rcvd;
@@ -192,6 +178,7 @@ int run_tests(int n_addr, int n_stream, char *start_addr, int startPort, int buf
 	}	
 	tres->rollingJitter /= n_thread;
 	computeMcastStat(tres);
+	return 0;
 }
 
 void* run_subtest(void *arg){
@@ -214,7 +201,6 @@ void* run_subtest(void *arg){
     struct timespec start;
 	start.tv_sec = 0;
 	struct timespec recv_time;
-	double s_transit = 0;
 	McastStat *mstat = createMcastStat();
     while(1) {
         int bytes = 0;    
@@ -274,7 +260,6 @@ void* run_subtest(void *arg){
 	diff.tv_sec = recv_time.tv_sec - start.tv_sec;
 	diff.tv_nsec = recv_time.tv_nsec - start.tv_nsec;
     double elapsed_time = diff.tv_sec + (diff.tv_nsec / 1e9);
-	double mbps = nbytes/elapsed_time/1.0e6 * 8;
 	
 	mstat->rcvd = rcvd;
 	mstat->lost = lost;

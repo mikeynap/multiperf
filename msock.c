@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-
+#include <string.h>
 #include "msock.h"
 
 SOCKET mcast_send_socket(char* multicastIP, char* multicastPort,  int multicastTTL, struct addrinfo **multicastAddr) {

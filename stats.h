@@ -33,7 +33,7 @@ int compare_floats (const void *a, const void *b);
 McastStat *createMcastStat();
 
 
-inline void insertJitter(McastStat *j, float jitter);
+void insertJitter(McastStat *j, float jitter);
 
 float computeBitrate(McastStat *s);
 float computeLoss(McastStat *s);

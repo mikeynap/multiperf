@@ -25,7 +25,7 @@ McastStat* createMcastStat (){
 }
 
 
-inline void insertJitter(McastStat *j, float jitter){
+void insertJitter(McastStat *j, float jitter){
 	if (j->rollingJitter && jitter > j->rollingJitter * 10000) return;
 	if (j->used == j->size){
 		j->size *= 2;
