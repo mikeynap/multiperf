@@ -23,8 +23,8 @@ Tool to profile multiple multicast streams.
 	Over 5 streams, starting at port 13000 (default)
 	each transmitting at 10mbps for 10 seconds each (default). 
 
-	Receiver: perfabr -R -a 80 -s 5 
-	Sender: perfabr -S -a 80 -s 5
+	Receiver: perfabr -R -a 80 -s 5 -i 10 
+	Sender: perfabr -S -a 80 -s 5 -i 10
 
 This will run 9 tests varying over the number of addresses in increments of 10
 and give a CSV report at the end.
