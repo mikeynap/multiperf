@@ -94,7 +94,7 @@ int main(int argc, char **argv){
 		    exit(EXIT_FAILURE);
 		
 		default:
-        	fprintf(stderr, "Usage: %s [-S|-R] [options]\nTry `%s -h` for more information.", argv[0]);
+        	fprintf(stderr, "Usage: %s [-S|-R] [options]\nTry `%s -h` for more information.", argv[0], argv[0]);
 			exit(EXIT_FAILURE);
         }
     }

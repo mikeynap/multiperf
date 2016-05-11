@@ -80,12 +80,13 @@ int receiver(int n_addr, int n_stream, int test_inc, char *start_addr, int start
 		test_results[ind] = createMcastStat();
 		int rc = run_tests(j, n_stream, start_addr, start_port, buf_len, test_results[ind]);
 		if (rc == EXIT_FAILURE){
-			free(test_results[ind]);
+			freeMcastStat(test_results[ind]);
 			test_results[ind] = NULL;
 			continue;
 		}
 		disp_results(j, n_stream, test_results[ind]);
 		csv_results(j, n_stream, test_results[ind], csv + ind);
+		freeMcastStat(test_results[ind]);
 		n_tests++;
 		ind++;
 		if (j == n_addr) break;

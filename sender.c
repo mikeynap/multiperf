@@ -54,7 +54,7 @@ int sender(int nAddr, int nStream, float bandwidth, int test_time, int test_inc,
 		char *plural_a = "";
 		if (nAddr > 1) plural_a = "es";
 	
-		printf("Test %d: Sending to %d/%d Address%s (starting at %s:%d) over %d stream, at %.2f mbps for %d seconds.\n", n, k, nAddr, plural_a, addr, start_port,nStream, bandwidth, test_time);
+		printf("Test %d: Sending to %d/%d Address%s (starting at %s:%d) over %d stream%s, at %.2f mbps for %d seconds.\n", n, k, nAddr, plural_a, addr, start_port,nStream,plural_s, bandwidth, test_time);
 		for(i = 0; i < k; i++) {
 			for (j = 0; j < nStream; j++){
 			    pid = fork();
@@ -79,4 +79,5 @@ int sender(int nAddr, int nStream, float bandwidth, int test_time, int test_inc,
 		k += test_inc;
 		if (k > nAddr) k = nAddr;
 	}
+	return 0;
 }

@@ -162,12 +162,10 @@ SOCKET mcast_recv_socket(char* multicastIP, char* multicastPort, int multicastRe
     /* get/set socket receive buffer */
     int optval=0;
     socklen_t optval_len = sizeof(optval);
-    int dfltrcvbuf;
     if(getsockopt(sock, SOL_SOCKET, SO_RCVBUF,(char*)&optval, &optval_len) !=0) {
         perror("getsockopt");
         goto error;
     }
-    dfltrcvbuf = optval;
     optval = multicastRecvBufSize;
     if(setsockopt(sock,SOL_SOCKET,SO_RCVBUF,(char*)&optval,sizeof(optval)) != 0) {
         perror("setsockopt");
