@@ -105,6 +105,6 @@ int main(int argc, char **argv){
 		if (mbps == -1) mbps = 10;
 		sender(n_addr, n_stream, mbps, test_time, test_inc, multicast_start, start_port);
 	}
-	
+	return 0;
 }
 

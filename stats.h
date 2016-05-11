@@ -30,7 +30,7 @@ typedef struct  {
 } McastStat;
 
 int compare_floats (const void *a, const void *b);
-McastStat *createMcastStat();
+McastStat *createMcastStat(int jitterStat);
 
 
 void insertJitter(McastStat *j, float jitter);

@@ -13,10 +13,13 @@ int compare_floats (const void *x, const void *y)
     return 0;
 }
 
-McastStat* createMcastStat (){
+McastStat* createMcastStat (int jitterStat){
 	McastStat *j = malloc(sizeof(McastStat));
 	j->used = 0;
-	j->size = 100;
+	j->size = 1000;
+	if (jitterStat > 0){
+		j->size = jitterStat;
+	}
 	j->jitters = malloc(j->size * sizeof(float));
 	j->jstat = NULL;
 	j->rollingJitter = 0;

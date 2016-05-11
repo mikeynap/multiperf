@@ -20,11 +20,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pthread.h>
-
+#include <limits.h>
 #include "msock.h"
 #include "stats.h"
 #include "receiver.h"
-
 
 
 void* ReturnWithError(char* errorMessage, int sock, char *recvBuf)
@@ -65,25 +64,42 @@ int receiver(int n_addr, int n_stream, int test_inc, char *start_addr, int start
 	
 	if (test_inc < 0) test_inc *= -1;
 	if (test_inc > n_addr) test_inc = n_addr;
-	
 	int n_tests =  3 + n_addr/(test_inc + 1);
 	char **csv = malloc(sizeof(char *) * n_tests);
 	McastStat *test_results[n_tests];
-	int j = 1;
-	int ind = 0;
+	int *sockets = malloc(sizeof(int) * n_addr * n_stream);
+	int i, j, ind = 0;
+	for (i = 0; i < n_addr; i++){
+		char addr[25];
+		
+		for (j = 0; j < n_stream; j++){
+			int ind = i * n_stream + j;
+			char port[8];			
+			sprintf(port, "%d", start_port + ind);
+			sprintf(addr, "%s", increment_address(start_addr, i));
+			sockets[ind] = mcast_recv_socket(addr, port, MULTICAST_SO_RCVBUF);
+			if (sockets[ind] < 0) {
+				exit(0);
+			}
+		} 
+		
+	}
+	j = 1;
 	//test level.
 	if (test_inc == 0){
 		j = n_addr;
 		n_tests = 1;
 	}
+	int jitterSize = 0;
 	while(j <= n_addr ){
-		test_results[ind] = createMcastStat();
-		int rc = run_tests(j, n_stream, start_addr, start_port, buf_len, test_results[ind]);
+		test_results[ind] = createMcastStat(jitterSize);
+		int rc = run_tests(j, n_stream, start_addr, start_port, buf_len, test_results[ind], sockets, jitterSize);
 		if (rc == EXIT_FAILURE){
 			freeMcastStat(test_results[ind]);
 			test_results[ind] = NULL;
 			continue;
 		}
+		jitterSize = test_results[ind]->used;
 		disp_results(j, n_stream, test_results[ind]);
 		csv_results(j, n_stream, test_results[ind], csv + ind);
 		freeMcastStat(test_results[ind]);
@@ -94,11 +110,16 @@ int receiver(int n_addr, int n_stream, int test_inc, char *start_addr, int start
 		j += test_inc;
 		if (j > n_addr) j = n_addr;
 	}
-	
+	free(sockets);
 	print_free_csv_results(csv, ind, stdout);
+	for (j = 0; j < n_addr * n_stream; j++){
+		close(sockets[j]);
+	}
 	return 0;
 	
 }
+
+
 
 void print_free_csv_results(char **csv, int n_tests, FILE *fd){
 	fprintf(fd, "Addresses, Streams, Packet Loss, Average Bitrate/Stream (mbps), Aggregate Bitrate (mbps), Rolling Jitter (s), MinJit, Q1Jit, MedJit, Q3Jit, MaxJit, StddevJit, MeanJit\n");
@@ -126,11 +147,15 @@ void disp_results(int n_addr, int n_stream, McastStat *stat){
 	printf("Jitter Stats: Rolling: %f, Min: %f, Q1: %f, Med:%f, Q3: %f, Max: %f, Stddev: %f, Mean: %f\n\n",stat->rollingJitter, j->min, j->q1, j->median, j->q3, j->max, j->stddev, j->mean);
 }
 
-int run_tests(int n_addr, int n_stream, char *start_addr, int startPort, int bufLen, McastStat *tres){
+int run_tests(int n_addr, int n_stream, char *start_addr, int startPort, int bufLen, McastStat *tres, int *socks, int jitterSize){
 	int i,j,rc;
 	int n_thread = n_addr * n_stream;
 	pthread_t thr[n_thread];
 	mthread_data_t thr_data[n_thread];
+    pthread_attr_t thread_attr;
+	pthread_attr_init(&thread_attr);
+	pthread_attr_setstacksize(&thread_attr , PTHREAD_STACK_MIN );
+	
 	char *plural_s = "";
 	if (n_stream > 1) plural_s = "s";
 	char *plural_a = "";
@@ -143,23 +168,26 @@ int run_tests(int n_addr, int n_stream, char *start_addr, int startPort, int buf
 			sprintf(thr_data[ind].port, "%d", startPort + ind);
 			sprintf(thr_data[ind].addr, "%s", increment_address(start_addr, i));
 			thr_data[ind].bufLen = bufLen;
+			thr_data[ind].sock = socks[ind];
+			thr_data[ind].jitterSize = jitterSize;
+			thr_data[ind].stat = createMcastStat(jitterSize);
 		} 
-		
 	}
 	
 	// loop again to ensure things start at same time.
 	for (i = 0; i < n_thread; i++){
-		if ((rc = pthread_create(&thr[i], NULL, run_subtest, &thr_data[i]))) {
+		if ((rc = pthread_create(&thr[i], &thread_attr, run_subtest, &thr_data[i]))) {
 			fprintf(stderr, "error: pthread_create, rc: %d\n", rc);
 			return EXIT_FAILURE;
 		}
 	} 
 	
 	for (i = 0; i < n_thread; i++){
-		pthread_join(thr[i], (void **)&thr_data[i].stat);
+		pthread_join(thr[i], NULL);
 		if (thr_data[i].stat == NULL){
 			return EXIT_FAILURE;
 		}
+		pthread_detach(thr[i]);
 	}
 	
 	for (i = 0; i < n_thread; i++){	
@@ -186,10 +214,10 @@ void* run_subtest(void *arg){
 	int     sock;                     /* Socket */
     
 	mthread_data_t *args = (mthread_data_t *)arg;
-    char *recvBuf = malloc(args->bufLen*sizeof(char));
+    char recvBuf[args->bufLen*sizeof(char))];
     
     
-    sock = mcast_recv_socket(args->addr, args->port, MULTICAST_SO_RCVBUF);
+    sock = args->sock;
     if(sock < 0)
         pthread_exit(ReturnWithError("mcast_recv_socket() failed", sock, recvBuf));
     
@@ -202,7 +230,7 @@ void* run_subtest(void *arg){
     struct timespec start;
 	start.tv_sec = 0;
 	struct timespec recv_time;
-	McastStat *mstat = createMcastStat();
+	McastStat *mstat = args->stat;
     while(1) {
         int bytes = 0;    
         /* Receive a single datagram from the server */
@@ -266,8 +294,8 @@ void* run_subtest(void *arg){
 	mstat->lost = lost;
 	mstat->ttime = elapsed_time;
 	mstat->bytes = nbytes;
-	free(recvBuf);
-	close(sock);
-	pthread_exit(mstat);
-	return mstat;
+	//free(recvBuf);
+	//close(sock);
+	pthread_exit(NULL);
+	return NULL;
 }
