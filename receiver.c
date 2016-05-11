@@ -214,7 +214,7 @@ void* run_subtest(void *arg){
 	int     sock;                     /* Socket */
     
 	mthread_data_t *args = (mthread_data_t *)arg;
-    char recvBuf[args->bufLen*sizeof(char))];
+    char recvBuf[args->bufLen*sizeof(char)];
     
     
     sock = args->sock;
