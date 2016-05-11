@@ -21,9 +21,22 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <limits.h>
+#include <signal.h>
+
 #include "msock.h"
 #include "stats.h"
 #include "receiver.h"
+
+char **csv;
+int n_tests;
+
+void sig_func(int sig)
+{
+ printf("Interrupt. Printing Results\n");
+ print_free_csv_results(csv, n_tests, stdout);
+ exit(0);
+ 
+}
 
 
 void* ReturnWithError(char* errorMessage, int sock, char *recvBuf)
@@ -64,8 +77,8 @@ int receiver(int n_addr, int n_stream, int test_inc, char *start_addr, int start
 	
 	if (test_inc < 0) test_inc *= -1;
 	if (test_inc > n_addr) test_inc = n_addr;
-	int n_tests =  3 + n_addr/(test_inc + 1);
-	char **csv = malloc(sizeof(char *) * n_tests);
+	n_tests =  3 + n_addr/(test_inc + 1);
+	csv = malloc(sizeof(char *) * n_tests);
 	McastStat *test_results[n_tests];
 	int *sockets = malloc(sizeof(int) * n_addr * n_stream);
 	int i, j, ind = 0;
@@ -88,16 +101,16 @@ int receiver(int n_addr, int n_stream, int test_inc, char *start_addr, int start
 	//test level.
 	if (test_inc == 0){
 		j = n_addr;
-		n_tests = 1;
 	}
+	n_tests = 0;
 	int jitterSize = 0;
+    signal(SIGINT,sig_func);
+	
 	while(j <= n_addr ){
 		test_results[ind] = createMcastStat(jitterSize);
 		int rc = run_tests(j, n_stream, start_addr, start_port, buf_len, test_results[ind], sockets, jitterSize);
 		if (rc == EXIT_FAILURE){
-			freeMcastStat(test_results[ind]);
-			test_results[ind] = NULL;
-			continue;
+			break;
 		}
 		jitterSize = test_results[ind]->used;
 		disp_results(j, n_stream, test_results[ind]);
@@ -170,6 +183,7 @@ int run_tests(int n_addr, int n_stream, char *start_addr, int startPort, int buf
 			thr_data[ind].bufLen = bufLen;
 			thr_data[ind].sock = socks[ind];
 			thr_data[ind].jitterSize = jitterSize;
+			thr_data[ind].timeout = 20;
 			thr_data[ind].stat = createMcastStat(jitterSize);
 		} 
 	}
@@ -182,18 +196,21 @@ int run_tests(int n_addr, int n_stream, char *start_addr, int startPort, int buf
 		}
 	} 
 	
+	int recv = 0;
 	for (i = 0; i < n_thread; i++){
 		pthread_join(thr[i], NULL);
-		if (thr_data[i].stat == NULL){
-			return EXIT_FAILURE;
-		}
+		if (thr_data[i].stat->rcvd > recv) 
+			recv = thr_data[i].stat->rcvd;
 		pthread_detach(thr[i]);
 	}
-	
+	int nerr = 0;
 	for (i = 0; i < n_thread; i++){	
 		McastStat *stat = thr_data[i].stat;
-		
-		tres->rcvd += stat->rcvd;
+		if (thr_data[i].timeout == -1){
+			tres->rcvd += recv;
+			nerr++;
+		}
+		else tres->rcvd += stat->rcvd;
 		tres->lost += stat->lost;
 		tres->ttime += stat->ttime;
 		tres->bytes += stat->bytes;
@@ -203,7 +220,9 @@ int run_tests(int n_addr, int n_stream, char *start_addr, int startPort, int buf
 		}
 		tres->rollingJitter = rj + stat->rollingJitter;
 		freeMcastStat(stat);
-		
+	}
+	if (nerr == n_thread){
+		return EXIT_FAILURE;
 	}	
 	tres->rollingJitter /= n_thread;
 	computeMcastStat(tres);
@@ -230,13 +249,22 @@ void* run_subtest(void *arg){
     struct timespec start;
 	start.tv_sec = 0;
 	struct timespec recv_time;
+	struct timespec timeout;
+    clock_gettime(CLOCK_REALTIME, &timeout);
 	McastStat *mstat = args->stat;
     while(1) {
         int bytes = 0;    
         /* Receive a single datagram from the server */
         if ((bytes = recvfrom(sock, recvBuf, args->bufLen, 0, (struct sockaddr *)NULL, 0)) < 0){
             if (rcvd == 0){
-                continue;
+			    clock_gettime(CLOCK_REALTIME, &recv_time);
+                if (recv_time.tv_sec - timeout.tv_sec > args->timeout){
+					args->timeout = -1;
+					pthread_exit(NULL);
+					return NULL;
+                }
+				
+				continue;
             }
             else{				
                 break;

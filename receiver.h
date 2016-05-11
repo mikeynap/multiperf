@@ -17,6 +17,7 @@ typedef struct {
 	int bufLen;
 	int jitterSize;
 	int sock;
+	int timeout;
 	McastStat *stat;
 } mthread_data_t;
 
