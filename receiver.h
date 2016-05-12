@@ -3,6 +3,7 @@
 
 #include "stats.h"
 #include <stdint.h>
+#include <stdio.h>
 
 #define MULTICAST_SO_RCVBUF 208000
 
@@ -22,15 +23,15 @@ typedef struct {
 } mthread_data_t;
 
 
-int receiver(int n_addr, int n_stream, int test_inc, char *start_addr, int start_port, int buf_len, int mbps);
+int receiver(int n_addr, int n_stream, int test_inc, char *start_addr, int start_port, int buf_len, int mbps, FILE *out, int json, int timeout);
 
 
 void* ReturnWithError(char* errorMessage, int sock, char *recvBuf);
 void *run_subtest(void *arg);
-int run_tests(int n_addr, int n_steram, char *start_addr, int startPort, int bufLen, McastStat *tres, int *socks, int jitterSize);
+int run_tests(int n_addr, int n_steram, char *start_addr, int startPort, int bufLen, McastStat *tres, int *socks, int jitterSize, int timeout);
 void disp_results(int n_addr, int n_stream, McastStat *stat);
 void csv_results(int n_addr, int n_stream, McastStat *stat, char **output);
-void print_free_csv_results(char **csv, int n_tests, FILE * fd);
+void print_free_csv_results(char **csv, int n_tests, FILE * fd, int json);
 
 char* increment_address(const char* address_string, int by);
 

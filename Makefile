@@ -1,7 +1,7 @@
 TARGET = perfabr
 LIBS = -lm -pthread
 CC = gcc
-CFLAGS = -Wall
+CFLAGS += -Wall
 
 .PHONY: clean all default
 

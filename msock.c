@@ -151,6 +151,12 @@ SOCKET mcast_recv_socket(char* multicastIP, char* multicastPort, int multicastRe
         perror("setsockopt");
         goto error;
     }
+	
+    if (setsockopt(sock,SOL_SOCKET,SO_REUSEPORT,(char*)&yes,sizeof(int)) == -1) {
+        perror("setsockopt");
+        goto error;
+    }
+	
     
     /* Bind the local address to the multicast port */
     if ( bind(sock, localAddr->ai_addr, localAddr->ai_addrlen) != 0 ) {

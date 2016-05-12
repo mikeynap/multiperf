@@ -29,11 +29,21 @@
 
 char **csv;
 int n_tests;
+int json;
+FILE *output;
+int *sockets;
 
 void sig_func(int sig)
 {
  printf("Interrupt. Printing Results\n");
- print_free_csv_results(csv, n_tests, stdout);
+ print_free_csv_results(csv, n_tests, output, json);
+ int i =0;
+ while (1){
+	 if (sockets[i] > 0){
+		 close(sockets[i++]);
+	 }
+	 else break;
+ }
  exit(0);
  
 }
@@ -71,16 +81,18 @@ char* increment_address(const char* address_string, int by)
 
 
 
-int receiver(int n_addr, int n_stream, int test_inc, char *start_addr, int start_port, int buf_len, int mbps){
+int receiver(int n_addr, int n_stream, int test_inc, char *start_addr, int start_port, int buf_len, int mbps, FILE *out, int jsn, int timeout){
 	// test_inc = 0, just do one test
 	// test_inc = n, test  1,1+n, 1+2n... n_addr addresses.
-	
+	json = jsn;
+	output = out;
 	if (test_inc < 0) test_inc *= -1;
 	if (test_inc > n_addr) test_inc = n_addr;
 	n_tests =  3 + n_addr/(test_inc + 1);
 	csv = malloc(sizeof(char *) * n_tests);
 	McastStat *test_results[n_tests];
-	int *sockets = malloc(sizeof(int) * n_addr * n_stream);
+	sockets = malloc(sizeof(int) * n_addr * n_stream + 1);
+	sockets[n_addr * n_stream] = -1;
 	int i, j, ind = 0;
 	for (i = 0; i < n_addr; i++){
 		char addr[25];
@@ -108,7 +120,7 @@ int receiver(int n_addr, int n_stream, int test_inc, char *start_addr, int start
 	
 	while(j <= n_addr ){
 		test_results[ind] = createMcastStat(jitterSize);
-		int rc = run_tests(j, n_stream, start_addr, start_port, buf_len, test_results[ind], sockets, jitterSize);
+		int rc = run_tests(j, n_stream, start_addr, start_port, buf_len, test_results[ind], sockets, jitterSize, timeout);
 		if (rc == EXIT_FAILURE){
 			break;
 		}
@@ -123,23 +135,76 @@ int receiver(int n_addr, int n_stream, int test_inc, char *start_addr, int start
 		j += test_inc;
 		if (j > n_addr) j = n_addr;
 	}
-	free(sockets);
-	print_free_csv_results(csv, ind, stdout);
+	print_free_csv_results(csv, ind, output, json);
 	for (j = 0; j < n_addr * n_stream; j++){
 		close(sockets[j]);
 	}
+	free(sockets);
 	return 0;
+	
+}
+
+char *csvToJson(char *header, char *csv){
+	char *jsn = malloc(strlen(csv) * 5);
+	char *ctok;
+	int n;
+	char headers[13][100];
+	char h[strlen(header) + 100];
+	strcpy(h, header);
+	char *hch = strtok(h, ",");
+	int i = 0;
+	hch = strtok(NULL, ",");
+	while (hch != NULL){
+		strcpy(headers[i++], hch);
+		hch = strtok(NULL,",");
+	}
+	
+	ctok = strtok(csv, ",");
+	n = sprintf(jsn, "\"%s\" : {\n", ctok);
+	
+	ctok = strtok(NULL, ",");
+	i = 0;
+	while (ctok != NULL){
+		n += sprintf(jsn + n, "%s : %s,\n", headers[i++], ctok);
+		ctok = strtok(NULL, ",");
+	}
+	n -= 2; // get rid of comma \n from last one ^
+	n += sprintf(jsn + n, "\n}");
+	jsn[n] = '\0';
+	
+	return jsn;
+	
+	
 	
 }
 
 
 
-void print_free_csv_results(char **csv, int n_tests, FILE *fd){
-	fprintf(fd, "Addresses, Streams, Packet Loss, Average Bitrate/Stream (mbps), Aggregate Bitrate (mbps), Rolling Jitter (s), MinJit, Q1Jit, MedJit, Q3Jit, MaxJit, StddevJit, MeanJit\n");
-	int i =0;
-	for (; i < n_tests; i++){
-		fprintf(fd, "%s\n", csv[i]);
+void print_free_csv_results(char **csv, int n_tests, FILE *fd, int json){
+	char *headers = "Addresses,Streams,PacketLoss,AverageBitrate/Stream(mbps),AggregateBitrate(mbps),RollingJitter(s),MinJit,Q1Jit,MedJit,Q3Jit,MaxJit,StddevJit,MeanJit";
+	int i = 0;
+	if (json == 1){
+		fprintf(fd, "{\n");		
+	} 
+	else {
+		fprintf(fd, "%s\n", headers);
+	}
+	
+	for (i = 0; i < n_tests; i++){
+		char *comma = "";
+		if (json == 1){
+			char *jout = csvToJson(headers, csv[i]);
+			free(csv[i]);
+			csv[i] = jout;
+			if (i != n_tests - 1){
+				comma = ",";
+			}
+		}
+		fprintf(fd, "%s%s\n", csv[i], comma);
 		free(csv[i]);
+	}
+	if (json == 1) {
+		fprintf(fd, "}\n");
 	}
 	free(csv);
 }
@@ -160,7 +225,7 @@ void disp_results(int n_addr, int n_stream, McastStat *stat){
 	printf("Jitter Stats: Rolling: %f, Min: %f, Q1: %f, Med:%f, Q3: %f, Max: %f, Stddev: %f, Mean: %f\n\n",stat->rollingJitter, j->min, j->q1, j->median, j->q3, j->max, j->stddev, j->mean);
 }
 
-int run_tests(int n_addr, int n_stream, char *start_addr, int startPort, int bufLen, McastStat *tres, int *socks, int jitterSize){
+int run_tests(int n_addr, int n_stream, char *start_addr, int startPort, int bufLen, McastStat *tres, int *socks, int jitterSize, int timeout){
 	int i,j,rc;
 	int n_thread = n_addr * n_stream;
 	pthread_t thr[n_thread];
@@ -183,7 +248,7 @@ int run_tests(int n_addr, int n_stream, char *start_addr, int startPort, int buf
 			thr_data[ind].bufLen = bufLen;
 			thr_data[ind].sock = socks[ind];
 			thr_data[ind].jitterSize = jitterSize;
-			thr_data[ind].timeout = 20;
+			thr_data[ind].timeout = timeout;
 			thr_data[ind].stat = createMcastStat(jitterSize);
 		} 
 	}
@@ -196,22 +261,22 @@ int run_tests(int n_addr, int n_stream, char *start_addr, int startPort, int buf
 		}
 	} 
 	
-	int recv = 0;
+	int np = 0;
 	for (i = 0; i < n_thread; i++){
 		pthread_join(thr[i], NULL);
-		if (thr_data[i].stat->rcvd > recv) 
-			recv = thr_data[i].stat->rcvd;
+		if (thr_data[i].stat->rcvd + thr_data[i].stat->lost > np) 
+			np = thr_data[i].stat->rcvd + thr_data[i].stat->lost;
 		pthread_detach(thr[i]);
 	}
 	int nerr = 0;
 	for (i = 0; i < n_thread; i++){	
 		McastStat *stat = thr_data[i].stat;
 		if (thr_data[i].timeout == -1){
-			tres->rcvd += recv;
+			tres->lost += np;
 			nerr++;
 		}
-		else tres->rcvd += stat->rcvd;
-		tres->lost += stat->lost;
+		else tres->lost += stat->lost;
+		tres->rcvd += stat->rcvd;
 		tres->ttime += stat->ttime;
 		tres->bytes += stat->bytes;
 		float rj = tres->rollingJitter;
