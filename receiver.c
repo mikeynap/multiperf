@@ -27,27 +27,20 @@
 #include "stats.h"
 #include "receiver.h"
 
-char **csv;
-int n_tests;
-int json;
-FILE *output;
 int *sockets;
 
-void sig_func(int sig)
-{
- printf("Interrupt. Printing Results\n");
- print_free_csv_results(csv, n_tests, output, json);
- int i =0;
- while (1){
-	 if (sockets[i] > 0){
-		 close(sockets[i++]);
-	 }
-	 else break;
- }
- exit(0);
- 
-}
 
+void closeSockets(){
+	int i = 0;
+    while (1){
+   	 if (sockets[i] > 0){
+   		 close(sockets[i++]);
+   	 }
+   	 else break;
+    }
+	
+	
+}
 
 void* ReturnWithError(char* errorMessage, int sock, char *recvBuf)
 {
@@ -81,17 +74,12 @@ char* increment_address(const char* address_string, int by)
 
 
 
-int receiver(int n_addr, int n_stream, int test_inc, char *start_addr, int start_port, int buf_len, int mbps, FILE *out, int jsn, int timeout){
+int receiver(McastResult** test_results, int n_addr, int n_stream, int test_inc, char *start_addr, int start_port, int buf_len, int mbps, int timeout){
 	// test_inc = 0, just do one test
 	// test_inc = n, test  1,1+n, 1+2n... n_addr addresses.
-	json = jsn;
-	output = out;
-	if (test_inc < 0) test_inc *= -1;
-	if (test_inc > n_addr) test_inc = n_addr;
-	n_tests =  3 + n_addr/(test_inc + 1);
-	csv = malloc(sizeof(char *) * n_tests);
-	McastStat *test_results[n_tests];
-	sockets = malloc(sizeof(int) * n_addr * n_stream + 1);
+	int n_tests;	
+	n_tests =  3 + n_addr/(test_inc);
+	sockets = malloc(sizeof(int) * n_addr * n_stream + sizeof(int));
 	sockets[n_addr * n_stream] = -1;
 	int i, j, ind = 0;
 	for (i = 0; i < n_addr; i++){
@@ -111,23 +99,18 @@ int receiver(int n_addr, int n_stream, int test_inc, char *start_addr, int start
 	}
 	j = 1;
 	//test level.
-	if (test_inc == 0){
+	if (test_inc == n_addr){
 		j = n_addr;
 	}
 	n_tests = 0;
 	int jitterSize = 0;
-    signal(SIGINT,sig_func);
 	
 	while(j <= n_addr ){
-		test_results[ind] = createMcastStat(jitterSize);
-		int rc = run_tests(j, n_stream, start_addr, start_port, buf_len, test_results[ind], sockets, jitterSize, timeout);
-		if (rc == EXIT_FAILURE){
+		test_results[ind] =  run_tests(j, n_stream, start_addr, start_port, buf_len, &jitterSize, timeout);
+		if (test_results[ind] == NULL){
 			break;
 		}
-		jitterSize = test_results[ind]->used;
-		disp_results(j, n_stream, test_results[ind]);
-		csv_results(j, n_stream, test_results[ind], csv + ind);
-		freeMcastStat(test_results[ind]);
+		disp_results(test_results[ind]);
 		n_tests++;
 		ind++;
 		if (j == n_addr) break;
@@ -135,104 +118,21 @@ int receiver(int n_addr, int n_stream, int test_inc, char *start_addr, int start
 		j += test_inc;
 		if (j > n_addr) j = n_addr;
 	}
-	print_free_csv_results(csv, ind, output, json);
-	for (j = 0; j < n_addr * n_stream; j++){
-		close(sockets[j]);
-	}
+	
+	closeSockets();
 	free(sockets);
-	return 0;
-	
-}
-
-char *csvToJson(char *header, char *csv){
-	char *jsn = malloc(strlen(csv) * 5);
-	char *ctok;
-	int n;
-	char headers[13][100];
-	char h[strlen(header) + 100];
-	strcpy(h, header);
-	char *hch = strtok(h, ",");
-	int i = 0;
-	hch = strtok(NULL, ",");
-	while (hch != NULL){
-		strcpy(headers[i++], hch);
-		hch = strtok(NULL,",");
-	}
-	
-	ctok = strtok(csv, ",");
-	n = sprintf(jsn, "\"%s\" : {\n", ctok);
-	
-	ctok = strtok(NULL, ",");
-	i = 0;
-	while (ctok != NULL){
-		n += sprintf(jsn + n, "%s : %s,\n", headers[i++], ctok);
-		ctok = strtok(NULL, ",");
-	}
-	n -= 2; // get rid of comma \n from last one ^
-	n += sprintf(jsn + n, "\n}");
-	jsn[n] = '\0';
-	
-	return jsn;
-	
-	
-	
+	return n_tests;
 }
 
 
-
-void print_free_csv_results(char **csv, int n_tests, FILE *fd, int json){
-	char *headers = "Addresses,Streams,PacketLoss,AverageBitrate/Stream(mbps),AggregateBitrate(mbps),RollingJitter(s),MinJit,Q1Jit,MedJit,Q3Jit,MaxJit,StddevJit,MeanJit";
-	int i = 0;
-	if (json == 1){
-		fprintf(fd, "{\n");		
-	} 
-	else {
-		fprintf(fd, "%s\n", headers);
-	}
-	
-	for (i = 0; i < n_tests; i++){
-		char *comma = "";
-		if (json == 1){
-			char *jout = csvToJson(headers, csv[i]);
-			free(csv[i]);
-			csv[i] = jout;
-			if (i != n_tests - 1){
-				comma = ",";
-			}
-		}
-		fprintf(fd, "%s%s\n", csv[i], comma);
-		free(csv[i]);
-	}
-	if (json == 1) {
-		fprintf(fd, "}\n");
-	}
-	free(csv);
-}
-
-void csv_results(int n_addr, int n_stream, McastStat *stat, char **output){
-	*output = malloc(sizeof(char) * 200);
-	char *o = *output;
-	McastJitterStat *j = stat->jstat;
-	sprintf(o, "%d,%d,%f%%,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f", n_addr, n_stream, computeLoss(stat) * 100, computeBitrate(stat), computeBitrate(stat) * n_addr * n_stream, 
-													 stat->rollingJitter, j->min, j->q1, j->median, j->q3, j->max, j->stddev, j->mean);
-	
-	
-}
-
-void disp_results(int n_addr, int n_stream, McastStat *stat){
-	printf("Packet Loss: %.3f%%, Average Bitrate/stream: %.3f mbps, Aggregate Bitrate: %.3f mbps\n", computeLoss(stat) * 100, computeBitrate(stat),computeBitrate(stat)*n_addr*n_stream);
-	McastJitterStat *j = stat->jstat;
-	printf("Jitter Stats: Rolling: %f, Min: %f, Q1: %f, Med:%f, Q3: %f, Max: %f, Stddev: %f, Mean: %f\n\n",stat->rollingJitter, j->min, j->q1, j->median, j->q3, j->max, j->stddev, j->mean);
-}
-
-int run_tests(int n_addr, int n_stream, char *start_addr, int startPort, int bufLen, McastStat *tres, int *socks, int jitterSize, int timeout){
+McastResult* run_tests(int n_addr, int n_stream, char *start_addr, int startPort, int bufLen, int *jitterSize, int timeout){
 	int i,j,rc;
 	int n_thread = n_addr * n_stream;
 	pthread_t thr[n_thread];
 	mthread_data_t thr_data[n_thread];
-    pthread_attr_t thread_attr;
-	pthread_attr_init(&thread_attr);
-	pthread_attr_setstacksize(&thread_attr , PTHREAD_STACK_MIN );
+    //pthread_attr_t thread_attr;
+	//pthread_attr_init(&thread_attr);
+	//pthread_attr_setstacksize(&thread_attr , PTHREAD_STACK_MIN );
 	
 	char *plural_s = "";
 	if (n_stream > 1) plural_s = "s";
@@ -246,52 +146,58 @@ int run_tests(int n_addr, int n_stream, char *start_addr, int startPort, int buf
 			sprintf(thr_data[ind].port, "%d", startPort + ind);
 			sprintf(thr_data[ind].addr, "%s", increment_address(start_addr, i));
 			thr_data[ind].bufLen = bufLen;
-			thr_data[ind].sock = socks[ind];
-			thr_data[ind].jitterSize = jitterSize;
+			thr_data[ind].sock = sockets[ind];
+			thr_data[ind].jitterSize = *jitterSize;
 			thr_data[ind].timeout = timeout;
-			thr_data[ind].stat = createMcastStat(jitterSize);
+			thr_data[ind].stat = createMcastStat(*jitterSize);
 		} 
 	}
 	
 	// loop again to ensure things start at same time.
 	for (i = 0; i < n_thread; i++){
-		if ((rc = pthread_create(&thr[i], &thread_attr, run_subtest, &thr_data[i]))) {
+		if ((rc = pthread_create(&thr[i], /*&thread_attr*/NULL, run_subtest, &thr_data[i]))) {
 			fprintf(stderr, "error: pthread_create, rc: %d\n", rc);
-			return EXIT_FAILURE;
+			return NULL;
 		}
 	} 
 	
-	int np = 0;
+	int ntime = 0;
 	for (i = 0; i < n_thread; i++){
 		pthread_join(thr[i], NULL);
-		if (thr_data[i].stat->rcvd + thr_data[i].stat->lost > np) 
-			np = thr_data[i].stat->rcvd + thr_data[i].stat->lost;
-		pthread_detach(thr[i]);
 	}
 	int nerr = 0;
+	McastStat *res = createMcastStat(*jitterSize);
 	for (i = 0; i < n_thread; i++){	
 		McastStat *stat = thr_data[i].stat;
 		if (thr_data[i].timeout == -1){
-			tres->lost += np;
 			nerr++;
 		}
-		else tres->lost += stat->lost;
-		tres->rcvd += stat->rcvd;
-		tres->ttime += stat->ttime;
-		tres->bytes += stat->bytes;
-		float rj = tres->rollingJitter;
-		for (j = 0; j < stat->used; j++){
-			insertJitter(tres, stat->jitters[j]);
+		else {
+			ntime = stat->ttime;
+			res->lost += stat->lost;
+			res->rcvd += stat->rcvd;
+			res->ttime += stat->ttime;
+			res->bytes += stat->bytes;
+			float rj = res->rollingJitter;
+			for (j = 0; j < stat->used; j++){
+				insertJitter(res, stat->jitters[j]);
+			}
+			res->rollingJitter = rj + stat->rollingJitter;		
+			if (stat->used > *jitterSize){
+				*jitterSize = stat->used;
+			}
 		}
-		tres->rollingJitter = rj + stat->rollingJitter;
 		freeMcastStat(stat);
 	}
-	if (nerr == n_thread){
-		return EXIT_FAILURE;
+	res->ttime += ntime * nerr;
+	if (nerr >= n_thread/2 || computeBitrate(res) < 0.01){
+		return (McastResult *)NULL;
 	}	
-	tres->rollingJitter /= n_thread;
-	computeMcastStat(tres);
-	return 0;
+	
+	res->rollingJitter /= (n_thread - nerr);
+	McastResult* r = computeMcastResult(res, n_addr, n_stream);
+	freeMcastStat(res);
+	return r;
 }
 
 void* run_subtest(void *arg){
@@ -302,8 +208,7 @@ void* run_subtest(void *arg){
     
     
     sock = args->sock;
-    if(sock < 0)
-        pthread_exit(ReturnWithError("mcast_recv_socket() failed", sock, recvBuf));
+
     
     int rcvd=0;
     int lost=0;
@@ -325,7 +230,6 @@ void* run_subtest(void *arg){
 			    clock_gettime(CLOCK_REALTIME, &recv_time);
                 if (recv_time.tv_sec - timeout.tv_sec > args->timeout){
 					args->timeout = -1;
-					pthread_exit(NULL);
 					return NULL;
                 }
 				
@@ -389,6 +293,6 @@ void* run_subtest(void *arg){
 	mstat->bytes = nbytes;
 	//free(recvBuf);
 	//close(sock);
-	pthread_exit(NULL);
+
 	return NULL;
 }

@@ -2,16 +2,26 @@
 #define STATS_H 1
 
 typedef struct {
+	int addresses;
+	int streams;
+	
 	float min;
 	float q1;
 	float median;
 	float q3;
 	float max;
+	float rollingJitter;
 	
 	float stddev;
 	float mean;
 	
-} McastJitterStat;
+	float loss;
+	float bitrate;
+	float aggrBitrate;
+	
+	
+	
+} McastResult;
 
 typedef struct  {
 	long used;
@@ -25,8 +35,7 @@ typedef struct  {
 	double ttime;
 		
 	long bytes;	
-	McastJitterStat *jstat;
-		
+			
 } McastStat;
 
 int compare_floats (const void *a, const void *b);
@@ -40,6 +49,21 @@ float computeLoss(McastStat *s);
 
 float computeMedian(float *arr, int s, int e);
 
-void computeMcastStat(McastStat *j);
+McastResult* computeMcastResult(McastStat *j, int naddr, int streams);
 void freeMcastStat(McastStat *j);
+
+
+
+
+
+
+
+void print_results(McastResult **rs, int n_test, FILE *fd, int json);
+char* result_to_json(McastResult *r);
+
+char * result_to_csv(McastResult *r);
+
+void disp_results(McastResult *j);
+
+
 #endif

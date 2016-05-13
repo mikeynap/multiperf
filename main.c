@@ -36,8 +36,28 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include "sender.h"
+#include "reporter.h"
 #include "receiver.h"
+
+FILE *output;
+McastResult **results;
+int json;
+Reporter* reporter;
+
+void sig_func(int sig){
+	int n_tests = 0;
+	while(results[n_tests] != NULL){
+		n_tests++;
+	}
+	print_results(results, n_tests, output, json);
+	if (results && reporter){
+ 		reportResults(reporter, results,n_tests, json);
+ 	}
+	closeSockets();
+	exit(0);
+}
 
 
 int main(int argc, char **argv){
@@ -45,13 +65,21 @@ int main(int argc, char **argv){
     extern int optind, optopt;
 	
     int opt;
-    enum { SENDER,RECEIVER } mode = RECEIVER;
+    enum { SENDER,RECEIVER,LISTENER } mode = RECEIVER;
 	char *multicast_start = "231.1.1.1";
 	int timeout = 20;
-	FILE *output = stdout;
-	int n_addr = 1, n_stream = 1, test_inc = 0, test_time = 10, start_port=13000, buf_len = 1470, ind=0, json = 0;
+	output = stdout;
+	reporter = NULL;
+	json = 0;
+	int n_addr = 1, n_stream = 1, test_inc = 0, test_time = 10, start_port=13000, buf_len = 1470, ind=0;
+	int report_port = 6300;
+	
 	float mbps = -1;
-    while ((opt = getopt(argc, argv, "SRa:s:i:b:t:p:m:l:o:je:")) != -1) {
+	results = NULL;
+    while ((opt = getopt(argc, argv, "SRLa:s:i:b:t:p:m:l:o:je:r:")) != -1) {
+		char *rport;
+		int foundport = 0;
+		int foundaddress = 0;
         switch (opt) {
 		case 'S': 
 			mode = SENDER; 
@@ -60,6 +88,10 @@ int main(int argc, char **argv){
    		case 'R': 
 			mode = RECEIVER; 
 			break;
+			
+		case 'L':
+			mode = LISTENER;
+			break;
 	
 		case 'a':
 			n_addr = atoi(optarg);
@@ -67,6 +99,26 @@ int main(int argc, char **argv){
 			
 		case 's':
 			n_stream = atoi(optarg);
+			break;
+		
+		case 'r':
+		    rport = optarg;
+			while ( *(rport++) != '\0') {
+				if (*rport == ':'){
+					rport++;
+					foundport = 1;
+					break;
+				}
+				if (*rport == '.'){
+					foundaddress = 1;
+				}
+			}
+			
+			if (foundport) report_port = atoi(rport);
+			if (foundaddress){ 
+				reporter = createReporter(optarg, report_port);	
+			}
+			else report_port = atoi(optarg);
 			break;
 			
 		case 'e':
@@ -130,12 +182,27 @@ int main(int argc, char **argv){
 			exit(EXIT_FAILURE);
         }
     }
+    signal(SIGINT,sig_func);
+	
 	if (mode == RECEIVER){
-		receiver(n_addr, n_stream, test_inc, multicast_start, start_port, buf_len,mbps, output, json, timeout);
+		if (test_inc < 0) test_inc *= -1;
+		if (test_inc > n_addr || test_inc == 0) test_inc = n_addr;
+		results = calloc((3 + n_addr/test_inc), sizeof(McastResult *));
+		int n_tests = receiver(results, n_addr, n_stream, test_inc, multicast_start, start_port, buf_len,mbps, timeout);
+		if (reporter){
+	 		reportResults(reporter, results,n_tests, json);
+			free(reporter);
+		}
+		print_results(results, n_tests, output, json);
 	}
 	else {
 		if (mbps == -1) mbps = 10;
+		if (!reporter) reporter = createReporter("0.0.0.0",report_port);
+		reporterListen(reporter);
 		sender(n_addr, n_stream, mbps, test_time, test_inc, multicast_start, start_port);
+		sleep(2);
+		crunchReports(reporter, output);
+		freeReporter(reporter);
 	}
 	return 0;
 }
