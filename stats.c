@@ -5,6 +5,8 @@
 #include <float.h>
 #include "stats.h"
 
+
+
 int compare_floats (const void *x, const void *y)
 {
     float xx = *(float*)x, yy = *(float*)y;
@@ -88,7 +90,7 @@ float computeBitrate(McastStat *s){
 
 float computeLoss(McastStat *s){
 	if (s->lost + s->rcvd == 0) return 1.0;
-	return (float)s->lost/(s->lost + s->rcvd);
+	return (float)s->lost/(s->lost + s->rcvd) * 100;
 }
 
 
@@ -99,7 +101,7 @@ void freeMcastStat(McastStat *j){
 
 
 void print_results(McastResult **rs, int n_test, FILE *fd, int json){
-	char *headers = "Addresses,Streams,PacketLoss,AverageBitrate/Stream(mbps),AggregateBitrate(mbps),RollingJitter(s),MinJit,Q1Jit,MedJit,Q3Jit,MaxJit,StddevJit,MeanJit";
+	char *headers = RESULT_HEADERS;
 	int i = 0;
 	if (json == 1){
 		fprintf(fd, "{\n");		

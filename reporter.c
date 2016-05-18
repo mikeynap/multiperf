@@ -158,10 +158,12 @@ void reporterListen(Reporter* r){
 }
 
 void crunchReports(Reporter *r, FILE *out){
+	if (r->nresults == 0) return;
 	if (out == stdout){
 		fprintf(out, "Results from %d receivers:\n", r->nreporters);
 	}
 	int i = 0, j = 0;
+	fprintf(out, "%s\n", RESULT_HEADERS);
 	for (; i < r->rsize; i++){
 		if (!r->results[i]) continue;
 		fprintf(out, "%d,%d,", (int)r->results[i][0], (int)r->results[i][1]);

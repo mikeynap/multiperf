@@ -190,7 +190,7 @@ McastResult* run_tests(int n_addr, int n_stream, char *start_addr, int startPort
 		freeMcastStat(stat);
 	}
 	res->ttime += ntime * nerr;
-	if (nerr >= n_thread/2 || computeBitrate(res) < 0.01){
+	if (nerr >= (n_thread + 1) / 2 || computeBitrate(res) < 0.01){
 		return (McastResult *)NULL;
 	}	
 	
