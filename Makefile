@@ -1,4 +1,4 @@
-TARGET = perfabr
+TARGET = multiperf
 LIBS = -lm -pthread
 CC = gcc
 CFLAGS += -Wall
