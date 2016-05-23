@@ -20,6 +20,8 @@ typedef struct {
 	char *address;
 	int port;
 	int sock;
+	int packet_size;
+	float bitrate;
 	pthread_t thread;
 	pthread_mutex_t lock;
 	float **results;
@@ -36,7 +38,7 @@ typedef struct {
 } listener_thread_data;
 
 
-Reporter* createReporter(char *address, int port); //, Reporter_t type );
+Reporter* createReporter(char *address, int port, float bandwidth, int packet_size);
 int reportResults(Reporter *r, McastResult **results, int n_tests, int json);
 void* listen_for_results(void *args);
 void crunchReports(Reporter *r, FILE *out);

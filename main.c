@@ -67,16 +67,18 @@ int main(int argc, char **argv){
     int opt;
     enum { SENDER,RECEIVER,LISTENER } mode = RECEIVER;
 	char *multicast_start = "231.1.1.1";
+	char report_addr[20];
+	strcpy(report_addr, "0.0.0.0");
 	int timeout = 20;
 	output = stdout;
 	reporter = NULL;
 	json = 0;
 	int n_addr = 1, n_stream = 1, test_inc = 0, test_time = 10, start_port=13000, buf_len = 1470, ind=0;
-	int report_port = 6300;
+	int report_port = 6300, packet_size = 1316;
 	
 	float mbps = -1;
 	results = NULL;
-    while ((opt = getopt(argc, argv, "SRLa:s:i:b:t:p:m:l:o:je:r:")) != -1) {
+    while ((opt = getopt(argc, argv, "SRLa:s:i:b:t:P:p:m:l:o:je:r:")) != -1) {
 		char *rport;
 		int foundport = 0;
 		int foundaddress = 0;
@@ -116,7 +118,7 @@ int main(int argc, char **argv){
 			
 			if (foundport) report_port = atoi(rport);
 			if (foundaddress){ 
-				reporter = createReporter(optarg, report_port);	
+				strcpy(report_addr, optarg);
 			}
 			else report_port = atoi(optarg);
 			break;
@@ -144,8 +146,12 @@ int main(int argc, char **argv){
 			test_time = atoi(optarg);
 			break;
 		
-		case 'p':
+		case 'P':
 			start_port = atoi(optarg);
+			break;
+		
+		case 'p':
+			packet_size = atoi(optarg);
 			break;
 			
 		case 'l':
@@ -183,12 +189,12 @@ int main(int argc, char **argv){
         }
     }
     signal(SIGINT,sig_func);
-	
+	reporter = createReporter(report_addr,report_port, mbps, packet_size);
 	if (mode == RECEIVER){
 		if (test_inc < 0) test_inc *= -1;
 		if (test_inc > n_addr || test_inc == 0) test_inc = n_addr;
 		results = calloc((3 + n_addr/test_inc), sizeof(McastResult *));
-		int n_tests = receiver(results, n_addr, n_stream, test_inc, multicast_start, start_port, buf_len,mbps, timeout);
+		int n_tests = receiver(results, n_addr, n_stream, test_inc, multicast_start, start_port, buf_len, mbps, timeout);
 		if (reporter){
 	 		reportResults(reporter, results,n_tests, json);
 			free(reporter);
@@ -197,9 +203,8 @@ int main(int argc, char **argv){
 	}
 	else {
 		if (mbps == -1) mbps = 10;
-		if (!reporter) reporter = createReporter("0.0.0.0",report_port);
 		reporterListen(reporter);
-		sender(n_addr, n_stream, mbps, test_time, test_inc, multicast_start, start_port);
+		sender(n_addr, n_stream, mbps, packet_size, test_time, test_inc, multicast_start, start_port);
 		sleep(2);
 		crunchReports(reporter, output);
 		freeReporter(reporter);

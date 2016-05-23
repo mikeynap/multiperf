@@ -106,7 +106,9 @@ int receiver(McastResult** test_results, int n_addr, int n_stream, int test_inc,
 	int jitterSize = 0;
 	
 	while(j <= n_addr ){
-		test_results[ind] =  run_tests(j, n_stream, start_addr, start_port, buf_len, &jitterSize, timeout);
+		int tout = timeout;
+		if (n_tests == 0) tout = 1000;
+		test_results[ind] =  run_tests(j, n_stream, start_addr, start_port, buf_len, &jitterSize, tout);
 		if (test_results[ind] == NULL){
 			break;
 		}

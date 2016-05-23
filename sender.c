@@ -38,7 +38,7 @@ void m_itoa(int n, char s[])
 }
 
 
-int sender(int nAddr, int nStream, float bandwidth, int test_time, int test_inc, char *addr, int start_port){
+int sender(int nAddr, int nStream, float bandwidth, int packet_size, int test_time, int test_inc, char *addr, int start_port){
     int i, j, pid;
 	int k = 1;
 	char bw[20];
@@ -65,7 +65,7 @@ int sender(int nAddr, int nStream, float bandwidth, int test_time, int test_inc,
 					int port = start_port + i *nStream + j;
 					char p[6];
 					m_itoa(port, p);
-					execl("/usr/bin/iperf", "/usr/bin/iperf", "-c", increment_address(addr, i), "-u", "-T", "32", "-p", p, "-x", "CDMSV", "-t", ttime, "-b", bw,NULL);
+					execl("/usr/bin/iperf", "/usr/bin/iperf", "-c", increment_address(addr, i), "-u", "-T", "32", "-l", packet_size, "-p", p, "-x", "CDMSV", "-t", ttime, "-b", bw,NULL);
 			        exit(0);
 			    } else  {
 					continue;
