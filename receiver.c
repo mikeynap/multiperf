@@ -28,6 +28,7 @@
 #include "receiver.h"
 
 int *sockets;
+int restarted = 0;
 
 
 void closeSockets(){
@@ -74,7 +75,7 @@ char* increment_address(const char* address_string, int by)
 
 
 
-int receiver(McastResult** test_results, int n_addr, int n_stream, int test_inc, char *start_addr, int start_port, int buf_len, int mbps, int timeout){
+int receiver(McastResult** test_results, int n_addr, int n_stream, int test_inc, char *start_addr, int start_port, int buf_len, int mbps, int timeout, int verbose){
 	// test_inc = 0, just do one test
 	// test_inc = n, test  1,1+n, 1+2n... n_addr addresses.
 	int n_tests;	
@@ -99,20 +100,17 @@ int receiver(McastResult** test_results, int n_addr, int n_stream, int test_inc,
 	}
 	j = 1;
 	//test level.
-	if (test_inc == n_addr){
-		j = n_addr;
-	}
 	n_tests = 0;
 	int jitterSize = 0;
 	
 	while(j <= n_addr ){
 		int tout = timeout;
-		if (n_tests == 0) tout = 1000;
-		test_results[ind] =  run_tests(j, n_stream, start_addr, start_port, buf_len, &jitterSize, tout);
+		if (n_tests == 0 && restarted == 0) tout = 300;
+		test_results[ind] =  run_tests(j, n_stream, start_addr, start_port, buf_len, &jitterSize, tout,verbose);
 		if (test_results[ind] == NULL){
 			break;
 		}
-		disp_results(test_results[ind]);
+		if (verbose == 1) disp_results(test_results[ind]);
 		n_tests++;
 		ind++;
 		if (j == n_addr) break;
@@ -123,11 +121,12 @@ int receiver(McastResult** test_results, int n_addr, int n_stream, int test_inc,
 	
 	closeSockets();
 	free(sockets);
+	restarted = 1;
 	return n_tests;
 }
 
 
-McastResult* run_tests(int n_addr, int n_stream, char *start_addr, int startPort, int bufLen, int *jitterSize, int timeout){
+McastResult* run_tests(int n_addr, int n_stream, char *start_addr, int startPort, int bufLen, int *jitterSize, int timeout, int verbose){
 	int i,j,rc;
 	int n_thread = n_addr * n_stream;
 	pthread_t thr[n_thread];
@@ -140,8 +139,9 @@ McastResult* run_tests(int n_addr, int n_stream, char *start_addr, int startPort
 	if (n_stream > 1) plural_s = "s";
 	char *plural_a = "";
 	if (n_addr > 1) plural_a = "es";
-	
-	printf("Receiving from %d Multicast Address%s (starting at %s:%d) over %d stream%s.\n", n_addr, plural_a, start_addr, startPort, n_stream, plural_s);
+	if (verbose == 1){
+		printf("Receiving from %d Multicast Address%s (starting at %s:%d) over %d stream%s.\n", n_addr, plural_a, start_addr, startPort, n_stream, plural_s);
+	}
 	for (i = 0; i < n_addr; i++){
 		for (j = 0; j < n_stream; j++){
 			int ind = i * n_stream + j;

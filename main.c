@@ -71,14 +71,15 @@ int main(int argc, char **argv){
 	strcpy(report_addr, "0.0.0.0");
 	int timeout = 20;
 	output = stdout;
+	int restart = 0;
 	reporter = NULL;
 	json = 0;
 	int n_addr = 1, n_stream = 1, test_inc = 0, test_time = 10, start_port=13000, buf_len = 1470, ind=0;
 	int report_port = 6300, packet_size = 1316;
-	
+	int verbose = 1;
 	float mbps = -1;
 	results = NULL;
-    while ((opt = getopt(argc, argv, "SRLa:s:i:b:t:P:p:m:l:o:je:r:")) != -1) {
+    while ((opt = getopt(argc, argv, "SRLa:s:i:b:t:P:p:m:l:o:je:r:x:z")) != -1) {
 		char *rport;
 		int foundport = 0;
 		int foundaddress = 0;
@@ -89,6 +90,10 @@ int main(int argc, char **argv){
 			
    		case 'R': 
 			mode = RECEIVER; 
+			break;
+			
+		case 'z':
+			restart = 1;
 			break;
 			
 		case 'L':
@@ -162,8 +167,12 @@ int main(int argc, char **argv){
 			multicast_start = optarg;	
 			break;
 		
+		case 'x':
+			verbose = 0;
+			break;
+			
 		case 'j':
-			json = 1;
+			json = 1;	
 			break;
 		
 	    case '?':
@@ -188,23 +197,38 @@ int main(int argc, char **argv){
 			exit(EXIT_FAILURE);
         }
     }
+	
     signal(SIGINT,sig_func);
+start:
+	if (mbps == -1) mbps = 10;
 	reporter = createReporter(report_addr,report_port, mbps, packet_size);
+	
 	if (mode == RECEIVER){
 		if (test_inc < 0) test_inc *= -1;
 		if (test_inc > n_addr || test_inc == 0) test_inc = n_addr;
 		results = calloc((3 + n_addr/test_inc), sizeof(McastResult *));
-		int n_tests = receiver(results, n_addr, n_stream, test_inc, multicast_start, start_port, buf_len, mbps, timeout);
-		if (reporter){
+		int n_tests = receiver(results, n_addr, n_stream, test_inc, multicast_start, start_port, buf_len, mbps, timeout, verbose);
+		if (report_addr[0] != '0'){
 	 		reportResults(reporter, results,n_tests, json);
-			free(reporter);
+			freeReporter(reporter);
 		}
 		print_results(results, n_tests, output, json);
+		int i = 0;
+		for (; i < n_tests; i++){
+			free(results[i]);
+		}
+		free(results);
+		if (restart == 1) {
+			if (n_tests > 0){
+				goto start;
+			}
+			return 1;
+		}
+		
 	}
 	else {
-		if (mbps == -1) mbps = 10;
 		reporterListen(reporter);
-		sender(n_addr, n_stream, mbps, packet_size, test_time, test_inc, multicast_start, start_port);
+		sender(n_addr, n_stream, mbps, packet_size, test_time, test_inc, multicast_start, start_port, verbose);
 		sleep(2);
 		crunchReports(reporter, output);
 		freeReporter(reporter);
