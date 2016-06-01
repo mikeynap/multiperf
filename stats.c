@@ -96,6 +96,7 @@ float computeLoss(McastStat *s){
 
 void freeMcastStat(McastStat *j){
 	free(j->jitters);
+	free(j);
 }
 
 

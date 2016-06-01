@@ -10,10 +10,12 @@
 #define NFIELDS 13
 
 
-Reporter* createReporter(char *address, int port){
+Reporter* createReporter(char *address, int port, float bandwidth, int packet_size){
 	Reporter *r = malloc(sizeof(Reporter));
 	r->address = address;
 	r->port = port;
+	r->bitrate = bandwidth;
+	r->packet_size = packet_size;
 	r->nreporters = 0;
 	r->nresults = 0;
 	r->rsize = 50;
@@ -163,10 +165,10 @@ void crunchReports(Reporter *r, FILE *out){
 		fprintf(out, "Results from %d receivers:\n", r->nreporters);
 	}
 	int i = 0, j = 0;
-	fprintf(out, "%s\n", RESULT_HEADERS);
+	fprintf(out, "Receivers,Bitrate,Packet Size,%s\n",  RESULT_HEADERS);
 	for (; i < r->rsize; i++){
 		if (!r->results[i]) continue;
-		fprintf(out, "%d,%d,", (int)r->results[i][0], (int)r->results[i][1]);
+		fprintf(out, "%d,%f,%d,%d,%d,",r->nreporters, r->bitrate, r->packet_size, (int)r->results[i][0], (int)r->results[i][1]);
 		for (j = 2; j < NFIELDS; j++){
 			r->results[i][j] /= r->nreporters;
 			fprintf(out, "%f%s", r->results[i][j], (j == NFIELDS - 1) ? "\n" : ",");
