@@ -79,7 +79,7 @@ int main(int argc, char **argv){
 	int verbose = 1;
 	float mbps = -1;
 	results = NULL;
-    while ((opt = getopt(argc, argv, "SRLa:s:i:b:t:P:p:m:l:o:je:r:x:z")) != -1) {
+    while ((opt = getopt(argc, argv, "SRLa:s:i:b:t:P:p:m:l:o:je:r:xz")) != -1) {
 		char *rport;
 		int foundport = 0;
 		int foundaddress = 0;
