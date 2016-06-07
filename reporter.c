@@ -18,8 +18,8 @@ Reporter* createReporter(char *address, int port, float bandwidth, int packet_si
 	r->packet_size = packet_size;
 	r->nreporters = 0;
 	r->nresults = 0;
-	r->rsize = 50;
-	r->results = malloc(r->rsize * sizeof(float*));
+	r->rsize = 100;
+	r->results = calloc(r->rsize, sizeof(float*));
 	int i = 0;
 	for (; i < r->rsize; i++) r->results[i] = NULL;
 	return r;
@@ -80,10 +80,10 @@ void* handle_reporter(void *arg){
 	listener_thread_data *data = (listener_thread_data *)arg;
 	int n = 0;
 	char buffer[100000];
-	int size = 25;
+	int size = 100;
 	int n_tests = 0;
 	int k = 1;
-	float **results = malloc(sizeof(float *) * size);
+	float **results = calloc(size, sizeof(float *));
 	int result_ind = 0;
 	while (k != 0){
   	  k = read(data->sock,buffer + n,10000);
@@ -132,23 +132,29 @@ void* handle_reporter(void *arg){
     for (n = 0; n < n_tests;n++){
 	    ind = (int)results[n][0];
         if (ind >= r->rsize){
-		    r->results = realloc(r->results, r->rsize * 2);
-		    r->rsize *= 2;
-			int z;
-			for (z=ind; z < r->rsize; z++) {
+			float **newresults = calloc(r->rsize * 2, sizeof(float *));
+			int z = 0;
+			for (; z < r->rsize; z++){
+				newresults[z] = r->results[z];
+			}
+			free(r->results);
+			r->results = newresults;			
+			for (z=r->rsize; z < r->rsize * 2; z++) {
 				r->results[z] = NULL;
 			}
+		    r->rsize *= 2;
+			
         }
 	    if (r->results[ind] == NULL){
-		    r->results[ind] = calloc(NFIELDS, sizeof(float));
+		    r->results[ind] = calloc(NFIELDS + 2, sizeof(float));
 		    r->nresults++;
 	    }
 	    r->results[ind][0] = ind;
 	    r->results[ind][1] = (int)results[n][1];
 	    for (k = 2; k < NFIELDS; k++){
 		    r->results[ind][k] += results[n][k];
-	    
 	    }
+		r->results[ind][NFIELDS] += 1;
     }
     pthread_mutex_unlock(&r->lock);
 	return NULL;
@@ -161,16 +167,13 @@ void reporterListen(Reporter* r){
 
 void crunchReports(Reporter *r, FILE *out){
 	if (r->nresults == 0) return;
-	if (out == stdout){
-		fprintf(out, "Results from %d receivers:\n", r->nreporters);
-	}
 	int i = 0, j = 0;
 	fprintf(out, "Receivers,Bitrate,Packet Size,%s\n",  RESULT_HEADERS);
 	for (; i < r->rsize; i++){
 		if (!r->results[i]) continue;
-		fprintf(out, "%d,%f,%d,%d,%d,",r->nreporters, r->bitrate, r->packet_size, (int)r->results[i][0], (int)r->results[i][1]);
+		fprintf(out, "%d,%f,%d,%d,%d,",(int)r->results[i][NFIELDS], r->bitrate, r->packet_size, (int)r->results[i][0], (int)r->results[i][1]);
 		for (j = 2; j < NFIELDS; j++){
-			r->results[i][j] /= r->nreporters;
+			r->results[i][j] /= r->results[i][NFIELDS];
 			fprintf(out, "%f%s", r->results[i][j], (j == NFIELDS - 1) ? "\n" : ",");
 		}
 	}
