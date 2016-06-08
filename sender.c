@@ -68,8 +68,7 @@ int sender(int nAddr, int nStream, float bandwidth, int packet_size, int test_ti
 		if (verbose == 1) printf("Test %d: Sending to %d/%d Address%s (starting at %s:%d) over %d stream%s, at %.2f mbps for %d seconds.\n", n, k, nAddr, plural_a, addr, start_port,nStream,plural_s, bandwidth, test_time);
 		for(i = 0; i < k; i++) {
 			for (j = 0; j < nStream; j++){
-			    pids[i * k + j] = fork();
-				pid = pids[i * k + j];
+				pid = fork();
 			    if(pid < 0) {
 			        printf("Error");
 			        exit(1);
