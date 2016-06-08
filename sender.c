@@ -52,6 +52,7 @@ int sender(int nAddr, int nStream, float bandwidth, int packet_size, int test_ti
 		if (pktsize[k] == '\0'){
 			pktsize[k] = 'B';
 			pktsize[k + 1] = '\0';
+			break;
 		}
 	}
 	k = 1;
