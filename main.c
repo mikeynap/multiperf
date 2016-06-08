@@ -160,7 +160,7 @@ int main(int argc, char **argv){
 			break;
 			
 		case 'l':
-			buf_len = atoi(optarg);
+			packet_size = atoi(optarg);
 			break;
 			
 		case 'm':
