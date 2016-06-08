@@ -88,7 +88,7 @@ int sender(int nAddr, int nStream, float bandwidth, int packet_size, int test_ti
 		n++;
 		sleep(test_time + 4);
 		for (i = k * nStream - 1; i >= 0; i--){
-			waitpid(pids[i], NULL,WNOHANG);
+			//waitpid(pids[i], NULL,WNOHANG);
 		}
 		
 		if (k == nAddr) break;
