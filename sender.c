@@ -6,7 +6,7 @@
 #include <arpa/inet.h>
 #include <signal.h>
 #include <sys/types.h>
-
+#import <sys/wait.h>
 #include "receiver.h"
 
 /* reverse:  reverse string s in place */
