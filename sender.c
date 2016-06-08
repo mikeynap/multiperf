@@ -41,14 +41,20 @@ void m_itoa(int n, char s[])
 
 
 int sender(int nAddr, int nStream, float bandwidth, int packet_size, int test_time, int test_inc, char *addr, int start_port, int verbose){
-    int i, j, pid;
-	int k = 1;
+    int i, j, pid, k;
 	char bw[20];
 	sprintf(bw, "%fm",bandwidth);
 	char ttime[8];
 	m_itoa(test_time, ttime);
 	char pktsize[8];
 	m_itoa(packet_size, pktsize);
+	for (k = 0; k < 8; k++){
+		if (pktsize[k] == '\0'){
+			pktsize[k] = 'B';
+			pktsize[k + 1] = '\0';
+		}
+	}
+	k = 1;
 	if (test_inc == 0) k = nAddr;
 	int n = 1;
 	signal(SIGCHLD, SIG_IGN);
