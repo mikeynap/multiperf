@@ -58,7 +58,6 @@ int sender(int nAddr, int nStream, float bandwidth, int packet_size, int test_ti
 	k = 1;
 	if (test_inc == 0) k = nAddr;
 	int n = 1;
-	signal(SIGCHLD, SIG_IGN);
 	while(k <= nAddr ){	
 		char *plural_s = "";
 		if (nStream > 1) plural_s = "s";

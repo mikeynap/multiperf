@@ -232,7 +232,7 @@ void* run_subtest(void *arg){
             if (rcvd == 0){
 			    clock_gettime(CLOCK_REALTIME, &recv_time);
                 if (recv_time.tv_sec - timeout.tv_sec > args->timeout){
-					printf("Timeout: %f %f %f\n", recv_time.tv_sec, timeout.tv_sec, recv_time.tv_sec - timeout.tv_sec);
+					printf("Timeout: %d %d %d\n", (int)recv_time.tv_sec, (int)timeout.tv_sec, (int)recv_time.tv_sec - (int)timeout.tv_sec);
 					args->timeout = -1;
 					return NULL;
                 }
