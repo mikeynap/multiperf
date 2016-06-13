@@ -158,6 +158,7 @@ McastResult* run_tests(int n_addr, int n_stream, char *start_addr, int startPort
 	// loop again to ensure things start at same time.
 	for (i = 0; i < n_thread; i++){
 		if ((rc = pthread_create(&thr[i], &thread_attr, run_subtest, &thr_data[i]))) {
+			printf("pthread_create rc: %d\n", rc);
 			fprintf(stderr, "error: pthread_create, rc: %d\n", rc);
 			return NULL;
 		}
