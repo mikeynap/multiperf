@@ -229,7 +229,7 @@ start:
 	else {
 		reporterListen(reporter);
 		sender(n_addr, n_stream, mbps, packet_size, test_time, test_inc, multicast_start, start_port, verbose);
-		sleep(2);
+		sleep(3);
 		crunchReports(reporter, output);
 		freeReporter(reporter);
 	}

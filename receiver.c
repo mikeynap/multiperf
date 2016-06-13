@@ -131,9 +131,9 @@ McastResult* run_tests(int n_addr, int n_stream, char *start_addr, int startPort
 	int n_thread = n_addr * n_stream;
 	pthread_t thr[n_thread];
 	mthread_data_t thr_data[n_thread];
-    //pthread_attr_t thread_attr;
-	//pthread_attr_init(&thread_attr);
-	//pthread_attr_setstacksize(&thread_attr , PTHREAD_STACK_MIN );
+    pthread_attr_t thread_attr;
+	pthread_attr_init(&thread_attr);
+	pthread_attr_setstacksize(&thread_attr , PTHREAD_STACK_MIN );
 	
 	char *plural_s = "";
 	if (n_stream > 1) plural_s = "s";

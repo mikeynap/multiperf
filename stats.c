@@ -65,7 +65,10 @@ McastResult* computeMcastResult(McastStat *j, int naddr, int nstreams){
     }
     js->mean = sum / j->used;
     double variance = sq_sum / j->used - js->mean * js->mean;
-    js->stddev = sqrtf(variance);
+    js->stddev = sqrt(variance);
+	if (js->stddev != js->stddev){ // isNan
+		js->stddev = 0;
+	}
 	
 	qsort(j->jitters, j->used, sizeof(float), compare_floats);
 	
@@ -123,6 +126,7 @@ void print_results(McastResult **rs, int n_test, FILE *fd, int json){
 		else {
 			char *rez = result_to_csv(rs[i]);
 			fprintf(fd, "%s\n", rez);
+			free(rez);
 		}
 	}
 	if (json == 1) {

@@ -70,7 +70,7 @@ int sender(int nAddr, int nStream, float bandwidth, int packet_size, int test_ti
 				pid = fork();
 			    if(pid < 0) {
 			        printf("Error");
-			        exit(1);
+			        return 0;
 			    } else if (pid == 0) {
 					int port = start_port + i *nStream + j;
 					char p[6];
