@@ -231,8 +231,6 @@ void* run_subtest(void *arg){
         int bytes = 0;    
         /* Receive a single datagram from the server */
         if ((bytes = recvfrom(sock, recvBuf, args->bufLen, 0, (struct sockaddr *)NULL, 0)) < 0){
-		    perror("recv error");
-			printf("%d\n", errno);
             if (rcvd == 0){
 			    clock_gettime(CLOCK_REALTIME, &recv_time);
                 if (recv_time.tv_sec - timeout.tv_sec > args->timeout){
