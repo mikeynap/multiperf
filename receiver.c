@@ -157,7 +157,7 @@ McastResult* run_tests(int n_addr, int n_stream, char *start_addr, int startPort
 	
 	// loop again to ensure things start at same time.
 	for (i = 0; i < n_thread; i++){
-		if ((rc = pthread_create(&thr[i], /*&thread_attr*/NULL, run_subtest, &thr_data[i]))) {
+		if ((rc = pthread_create(&thr[i], &thread_attr, run_subtest, &thr_data[i]))) {
 			fprintf(stderr, "error: pthread_create, rc: %d\n", rc);
 			return NULL;
 		}
@@ -193,6 +193,7 @@ McastResult* run_tests(int n_addr, int n_stream, char *start_addr, int startPort
 	}
 	res->ttime += ntime * nerr;
 	if (nerr >= (n_thread + 1) / 2 || computeBitrate(res) < 0.01){
+		printf("NERRS: %d, bitrate: %f", nerr, computeBitrate(res));
 		return (McastResult *)NULL;
 	}	
 	
@@ -231,6 +232,7 @@ void* run_subtest(void *arg){
             if (rcvd == 0){
 			    clock_gettime(CLOCK_REALTIME, &recv_time);
                 if (recv_time.tv_sec - timeout.tv_sec > args->timeout){
+					printf("Timeout: %f %f %f\n", recv_time.tv_sec, timeout.tv_sec, recv_time.tv_sec - timeout.tv_sec);
 					args->timeout = -1;
 					return NULL;
                 }
