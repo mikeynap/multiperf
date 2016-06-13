@@ -58,6 +58,7 @@ int sender(int nAddr, int nStream, float bandwidth, int packet_size, int test_ti
 	k = 1;
 	if (test_inc == 0) k = nAddr;
 	int n = 1;
+	signal(SIGCHLD, SIG_IGN);
 	while(k <= nAddr ){	
 		char *plural_s = "";
 		if (nStream > 1) plural_s = "s";
@@ -76,8 +77,7 @@ int sender(int nAddr, int nStream, float bandwidth, int packet_size, int test_ti
 					m_itoa(port, p);
 					
 					char fn[20];
-					sprintf(fn, "%d.%d.%d.txt",i,j,k);
-					
+					sprintf(fn, "%d.%d.%d.txt",i,j,k);					
 					execl("/usr/bin/iperf", "/usr/bin/iperf", "-c", increment_address(addr, i), "-u", "-T", "32", "-l", pktsize, "-p", p, /*"-x", "CDMSV",*/ "-t", ttime, "-b", bw,"-o",fn, NULL);
 			        exit(0);
 			    } else  {
