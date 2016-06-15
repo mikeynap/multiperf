@@ -83,7 +83,7 @@ int receiver(McastResult** test_results, int n_addr, int n_stream, int test_inc,
 	n_tests =  3 + n_addr/(test_inc);
 	sockets = malloc(sizeof(int) * n_addr * n_stream + sizeof(int));
 	sockets[n_addr * n_stream] = -1;
-	int i, j, ind = 0;
+	int i, j,k, ind = 0;
 	for (i = 0; i < n_addr; i++){
 		char addr[25];
 		
@@ -105,6 +105,28 @@ int receiver(McastResult** test_results, int n_addr, int n_stream, int test_inc,
 	int jitterSize = 0;
 	
 	while(j <= n_addr ){
+		
+		/* afasfasdf */
+		if (n_tests > 0 && n_tests % 20 == 0){
+			closeSockets();
+			for (i = 0; i < n_addr; i++){
+				char addr[25];
+				for (k = 0; k < n_stream; k++){
+					int ind = i * n_stream + k;
+					char port[8];			
+					sprintf(port, "%d", start_port + ind);
+					sprintf(addr, "%s", increment_address(start_addr, i));
+					sockets[ind] = mcast_recv_socket(addr, port, MULTICAST_SO_RCVBUF);
+					if (sockets[ind] < 0) {
+						exit(0);
+					}
+				} 
+		
+			}
+		}
+		
+		/* asdfasdfasdf */
+		
 		int tout = timeout;
 		if (n_tests == 0 && restarted == 0) tout = 300;
 		test_results[ind] =  run_tests(j, n_stream, start_addr, start_port, buf_len, &jitterSize, tout,verbose);
@@ -158,7 +180,7 @@ McastResult* run_tests(int n_addr, int n_stream, char *start_addr, int startPort
 	
 	// loop again to ensure things start at same time.
 	for (i = 0; i < n_thread; i++){
-		if ((rc = pthread_create(&thr[i], &thread_attr, run_subtest, &thr_data[i]))) {
+		if ((rc = pthread_create(&thr[i], &thread_attr, run_subtest, &thr_data[i])) < 0) {
 			printf("pthread_create rc: %d\n", rc);
 			fprintf(stderr, "error: pthread_create, rc: %d\n", rc);
 			return NULL;
