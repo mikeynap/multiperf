@@ -1,6 +1,6 @@
 #ifndef STATS_H
 #define STATS_H 1
-#define RESULT_HEADERS "Addresses,Streams,PacketLoss,AverageBitrate/Stream(mbps),AggregateBitrate(mbps),RollingJitter(s),MinJit,Q1Jit,MedJit,Q3Jit,MaxJit,StddevJit,MeanJit"
+#define RESULT_HEADERS "Addresses,Streams,PacketLoss,AverageBitrate/Stream(mbps),AggregateBitrate(mbps),RollingJitter(ms),MinJit,Q1Jit,MedJit,Q3Jit,MaxJit,StddevJit,MeanJit"
 
 typedef struct {
 	int addresses;

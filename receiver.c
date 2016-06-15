@@ -225,7 +225,7 @@ void* run_subtest(void *arg){
     long nbytes = 0;
     int last_p=-1;
     int this_p = 0;
-	float si = 0,ri = 0;
+	double si = 0,ri = 0;
     struct timespec start;
 	start.tv_sec = 0;
 	struct timespec recv_time;
@@ -275,9 +275,9 @@ void* run_subtest(void *arg){
 		tv.tv_sec = ntohl(tv.tv_sec);
 		tv.tv_usec = ntohl(tv.tv_usec);
 	
-		double sj = tv.tv_sec + tv.tv_usec/1e6;
+		double sj = tv.tv_sec + (double)tv.tv_usec/1e6;
 	
-	    double rj = recv_time.tv_sec + (recv_time.tv_nsec / 1e9);
+	    double rj = recv_time.tv_sec + ((double)recv_time.tv_nsec / 1e9);
 
 		
 	    if (start.tv_sec == 0){
@@ -286,7 +286,7 @@ void* run_subtest(void *arg){
 		else {
 			double jitter = (rj - sj) - (ri - si);
 			if (jitter < 0) jitter = -jitter;
-			insertJitter(mstat, jitter);
+			insertJitter(mstat, jitter * 1000);
 		}
 		si = sj;
 		ri = rj;
