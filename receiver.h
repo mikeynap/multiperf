@@ -32,5 +32,6 @@ void *run_subtest(void *arg);
 McastResult* run_tests(int n_addr, int n_steram, char *start_addr, int startPort, int bufLen, int *jitterSize, int timeout, int verbose);
 
 char* increment_address(const char* address_string, int by);
-void closeSockets();
+int open_sockets(int,int,int,char*);
+void close_sockets();
 #endif

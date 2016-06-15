@@ -32,7 +32,7 @@ int *sockets;
 int restarted = 0;
 
 
-void closeSockets(){
+void close_sockets(){
 	int i = 0;
     while (1){
    	 if (sockets[i] > 0){
@@ -40,8 +40,24 @@ void closeSockets(){
    	 }
    	 else break;
     }
-	
-	
+}
+
+int open_sockets(int n_addr, int n_stream, int start_port, char *start_addr){
+	int i,k;
+	for (i = 0; i < n_addr; i++){
+		char addr[25];
+		for (k = 0; k < n_stream; k++){
+			int ind = i * n_stream + k;
+			char port[8];			
+			sprintf(port, "%d", start_port + ind);
+			sprintf(addr, "%s", increment_address(start_addr, i));
+			sockets[ind] = mcast_recv_socket(addr, port, MULTICAST_SO_RCVBUF);
+			if (sockets[ind] < 0) {
+				return -1;
+			}
+		} 
+	}
+	return 0;
 }
 
 void* ReturnWithError(char* errorMessage, int sock, char *recvBuf)
@@ -83,50 +99,20 @@ int receiver(McastResult** test_results, int n_addr, int n_stream, int test_inc,
 	n_tests =  3 + n_addr/(test_inc);
 	sockets = malloc(sizeof(int) * n_addr * n_stream + sizeof(int));
 	sockets[n_addr * n_stream] = -1;
-	int i, j,k, ind = 0;
-	for (i = 0; i < n_addr; i++){
-		char addr[25];
-		
-		for (j = 0; j < n_stream; j++){
-			int ind = i * n_stream + j;
-			char port[8];			
-			sprintf(port, "%d", start_port + ind);
-			sprintf(addr, "%s", increment_address(start_addr, i));
-			sockets[ind] = mcast_recv_socket(addr, port, MULTICAST_SO_RCVBUF);
-			if (sockets[ind] < 0) {
-				exit(0);
-			}
-		} 
-		
-	}
+	int j, ind = 0;
+	open_sockets(n_addr, n_stream,start_port, start_addr);
 	j = 1;
 	//test level.
 	n_tests = 0;
 	int jitterSize = 0;
 	
 	while(j <= n_addr ){
-		
-		/* afasfasdf */
-		if (n_tests > 0 && n_tests % 20 == 0){
-			closeSockets();
-			for (i = 0; i < n_addr; i++){
-				char addr[25];
-				for (k = 0; k < n_stream; k++){
-					int ind = i * n_stream + k;
-					char port[8];			
-					sprintf(port, "%d", start_port + ind);
-					sprintf(addr, "%s", increment_address(start_addr, i));
-					sockets[ind] = mcast_recv_socket(addr, port, MULTICAST_SO_RCVBUF);
-					if (sockets[ind] < 0) {
-						exit(0);
-					}
-				} 
-		
-			}
+		/* hack needed for vms... */
+		if (n_tests > 0 && n_tests % 15 == 0){
+			close_sockets();
+			open_sockets(n_addr, n_stream,start_port, start_addr);
 		}
-		
-		/* asdfasdfasdf */
-		
+				
 		int tout = timeout;
 		if (n_tests == 0 && restarted == 0) tout = 300;
 		test_results[ind] =  run_tests(j, n_stream, start_addr, start_port, buf_len, &jitterSize, tout,verbose);
@@ -142,7 +128,7 @@ int receiver(McastResult** test_results, int n_addr, int n_stream, int test_inc,
 		if (j > n_addr) j = n_addr;
 	}
 	
-	closeSockets();
+	close_sockets();
 	free(sockets);
 	restarted = 1;
 	return n_tests;

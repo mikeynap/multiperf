@@ -61,7 +61,7 @@ void sig_func(int sig){
 	if (results && reporter){
  		reportResults(reporter, results,n_tests, json);
  	}
-	closeSockets();
+	close_sockets();
 	exit(0);
 }
 
