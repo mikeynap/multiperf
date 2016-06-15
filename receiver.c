@@ -3,8 +3,6 @@
  * Parts of run_subtest were lovingly borrowed from Christian Beier <dontmind@freeshell.org>.
  */
 
-
-
 #ifndef __MINGW32__
 #include <unistd.h>
 #endif
@@ -203,7 +201,6 @@ McastResult* run_tests(int n_addr, int n_stream, char *start_addr, int startPort
 	}
 	res->ttime += ntime * nerr;
 	if (nerr >= (n_thread + 1) / 2 || computeBitrate(res) < 0.01){
-		printf("NERRS: %d, bitrate: %f", nerr, computeBitrate(res));
 		return (McastResult *)NULL;
 	}	
 	
