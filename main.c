@@ -47,6 +47,12 @@ int json;
 Reporter* reporter;
 
 void sig_func(int sig){
+	if (!results && reporter){
+		sleep(3);
+		crunchReports(reporter, output);
+		freeReporter(reporter);
+		exit(0);
+	}
 	int n_tests = 0;
 	while(results[n_tests] != NULL){
 		n_tests++;
@@ -55,7 +61,7 @@ void sig_func(int sig){
 	if (results && reporter){
  		reportResults(reporter, results,n_tests, json);
  	}
-	closeSockets();
+	close_sockets();
 	exit(0);
 }
 
@@ -218,6 +224,7 @@ start:
 			free(results[i]);
 		}
 		free(results);
+		results = NULL;
 		if (restart == 1) {
 			if (n_tests > 0){
 				goto start;

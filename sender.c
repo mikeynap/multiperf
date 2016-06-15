@@ -76,7 +76,9 @@ int sender(int nAddr, int nStream, float bandwidth, int packet_size, int test_ti
 					char p[6];
 					m_itoa(port, p);
 					
-					execl("/usr/bin/iperf", "/usr/bin/iperf", "-c", increment_address(addr, i), "-u", "-T", "32", "-l", pktsize, "-p", p, "-x", "CDMSV", "-t", ttime, "-b", bw,NULL);
+					char fn[20];
+					sprintf(fn, "%d.%d.%d.txt",i,j,k);					
+					execl("/usr/bin/iperf", "/usr/bin/iperf", "-c", increment_address(addr, i), "-u", "-T", "32", "-l", pktsize, "-p", p, "-x", "CDMSV", "-t", ttime, "-b", bw,"-o",fn, NULL);
 			        exit(0);
 			    } else  {
 					continue;
