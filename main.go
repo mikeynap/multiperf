@@ -17,8 +17,11 @@ func main() {
 		addr := net.ParseIP("231.0.0.1")
 		for i := 0; i < 99; i++ {
 			if s, e := sender.NewSender(addr, 9999, 1, 5, 1316); e == nil {
+				fmt.Printf("%d: %v\n", i, addr)
 				go s.Send(addr, 9999)
+				fmt.Printf("%d: %v\n", i, addr)
 				addr = socket.Inc(addr)
+				fmt.Printf("%d: %v\n", i, addr)
 			} else {
 				fmt.Println(e)
 			}
