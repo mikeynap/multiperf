@@ -85,11 +85,13 @@ func (ms *MSocket) JoinGroups(group net.IP, n int) {
 	for i := 0; i < n; i++ {
 		ms.JoinGroup(group)
 		group = inc(group)
+		fmt.Println(group)
 	}
 }
 
 func (ms *MSocket) JoinGroup(group net.IP) error {
 	if err := ms.PacketConn.JoinGroup(ms.inter, &net.UDPAddr{IP: group}); err != nil {
+		fmt.Println(err)
 		return err
 	}
 	return nil

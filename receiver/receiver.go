@@ -36,7 +36,7 @@ func (l *Listener) Listen() {
 		if err != nil {
 			fmt.Printf("Err Reading: %v", err)
 		}
-		fmt.Printf("%v,%v,%v,%v,%v", string(b), n, cm, src, err)
+		fmt.Printf("%v,%v,%v,%v,%v\n", string(b), n, cm, src, err)
 
 	}
 }
