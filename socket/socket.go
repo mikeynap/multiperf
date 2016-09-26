@@ -48,7 +48,7 @@ func NewMulticastListener(port int, inter *net.Interface) (*MSocket, error) {
 	return &MSocket{inter, p}, nil
 }
 
-func NewMulticastSender(port int, inter *net.Interface) (*MSocket, error) {
+func NewMulticastSender(ip net.IP, port int, inter *net.Interface) (*MSocket, error) {
 	if inter == nil {
 		var err error
 		inter, err = GetMulticastInterface()
@@ -57,7 +57,7 @@ func NewMulticastSender(port int, inter *net.Interface) (*MSocket, error) {
 		}
 	}
 
-	addr := fmt.Sprintf(":%d", port)
+	addr := fmt.Sprintf("%v:%d", ip.To4().String(), port)
 	c, err := net.ListenPacket("udp4", addr)
 	if err != nil {
 		return nil, err

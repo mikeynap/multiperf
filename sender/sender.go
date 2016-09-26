@@ -19,7 +19,7 @@ func NewSender(ip net.IP, port int, inc int, seconds int, pktSize int) (*Sender,
 	if err != nil {
 		return nil, err
 	}
-	s, err := socket.NewMulticastSender(port, inter)
+	s, err := socket.NewMulticastSender(ip, port, inter)
 	if err != nil {
 		return nil, err
 	}
