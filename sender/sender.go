@@ -33,7 +33,7 @@ func (s *Sender) Send(ip net.IP, port int) error {
 	for {
 		if _, err := s.Socket.WriteTo(data, nil, dst); err != nil {
 			fmt.Println(err)
-			return err
+			continue
 		}
 		fmt.Printf("Wrote to %v\n", dst)
 		time.Sleep(1 * time.Second)
