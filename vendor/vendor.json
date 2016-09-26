@@ -7,6 +7,12 @@
 			"path": "github.com/beorn7/perks/quantile",
 			"revision": "4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9",
 			"revisionTime": "2016-08-04T10:47:26Z"
+		},
+		{
+			"checksumSHA1": "/9dNYKDW3wZoOD7bRCqSc2zR76A=",
+			"path": "golang.org/x/net/ipv4",
+			"revision": "f09c4662a0bd6bd8943ac7b4931e185df9471da4",
+			"revisionTime": "2016-09-24T00:10:04Z"
 		}
 	],
 	"rootPath": "github.com/mikeynap/multiperf"
