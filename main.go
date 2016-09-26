@@ -7,7 +7,6 @@ import (
 
 	"github.com/mikeynap/multiperf/receiver"
 	"github.com/mikeynap/multiperf/sender"
-	"github.com/mikeynap/multiperf/socket"
 )
 
 func main() {
@@ -21,7 +20,7 @@ func main() {
 				fmt.Printf("%d: %v\n", i, addr2)
 				go s.Send(addr, 9999)
 				fmt.Printf("%d: %v\n", i, addr2)
-				addr = socket.Inc(addr)
+				//addr = socket.Inc(addr)
 				fmt.Printf("%d: %v\n", i, addr2)
 			} else {
 				fmt.Println("Uh errorz")
