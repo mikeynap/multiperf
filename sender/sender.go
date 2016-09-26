@@ -3,6 +3,7 @@ package sender
 import (
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/mikeynap/multiperf/socket"
 )
@@ -35,5 +36,6 @@ func (s *Sender) Send(ip net.IP, port int) error {
 			fmt.Println(err)
 			return err
 		}
+		time.Sleep(1 * time.Second)
 	}
 }
