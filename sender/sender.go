@@ -31,11 +31,13 @@ func (s *Sender) Send(ip net.IP, port int) error {
 	data := []byte("HEY!!!")
 	dst := &net.UDPAddr{IP: ip, Port: port}
 	for {
-		if _, err := s.Socket.WriteTo(data, nil, dst); err != nil {
+		if rt, err := s.Socket.WriteTo(data, nil, dst); err != nil {
 			fmt.Println(err)
 			continue
+		} else {
+			fmt.Println(rt)
 		}
-		fmt.Printf("Wrote to %v\n", dst)
+		fmt.Printf("Wrote to %v %v\n", dst, ip)
 		time.Sleep(1 * time.Second)
 	}
 }
