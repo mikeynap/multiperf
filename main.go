@@ -23,7 +23,7 @@ func main() {
 			fmt.Println(e2)
 			return
 		}
-		s.Send(net.ParseIP("231.0.0.1"), 9999)
+		go s.Send(net.ParseIP("231.0.0.1"), 9999)
 		s2.Send(net.ParseIP("231.0.0.2"), 9999)
 	} else {
 		r, e := receiver.NewListener(net.ParseIP("231.0.0.1"), 9999, 2, 5, 1316)
