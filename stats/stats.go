@@ -21,8 +21,8 @@ func NewStats() *Stats {
 	}
 }
 
-func (t *MCTest) CombineStats(s *Stats) {
-	t.Stats.Combine(s)
+func (t *Stats) CombineStats(s *Stats) {
+	t.Combine(s)
 }
 
 func (s *Stats) Combine(s2 *Stats) {

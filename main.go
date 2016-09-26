@@ -1,8 +1,8 @@
 package main
 
-import "github.com/mikeynap/mperf/mctest"
+import "github.com/mikeynap/multiperf/stats"
 
 func main() {
-	mctest.TestQuantile()
+	stats.TestQuantile()
 
 }

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/mikeynap/mperf/socket"
-	"github.com/mikeynap/mperf/stats"
+	"github.com/mikeynap/multiperf/socket"
+	"github.com/mikeynap/multiperf/stats"
 )
 
 type Listener struct {
