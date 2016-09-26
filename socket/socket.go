@@ -1,6 +1,7 @@
 package socket
 
 import (
+	"errors"
 	"fmt"
 	"net"
 
@@ -9,26 +10,32 @@ import (
 
 type MSocket struct {
 	inter *net.Interface
-	conn  *ipv4.PacketConn
+	*ipv4.PacketConn
 }
 
-func GetMulticastInterface() *net.Interface {
+var ErrorNoValidInterface error = errors.New("No Valid Interface Available")
+
+func GetMulticastInterface() (*net.Interface, error) {
 	ifaces, _ := net.Interfaces()
 	for _, iface := range ifaces {
 		f := iface.Flags
 		if f&net.FlagUp == net.FlagUp && f&net.FlagMulticast == net.FlagMulticast && f&net.FlagLoopback == 0 {
-			return &iface
+			return &iface, nil
 		}
 	}
-	return nil
+	return nil, ErrorNoValidInterface
 }
 
 func NewMulticastListener(port int, inter *net.Interface) (*MSocket, error) {
 	if inter == nil {
-		inter = GetMulticastInterface()
+		var err error
+		inter, err = GetMulticastInterface()
+		if err != nil {
+			return nil, err
+		}
 	}
-
-	c, err := net.ListenPacket("udp4", "0.0.0.0:"+string(port))
+	addr := fmt.Sprintf(":%d", port)
+	c, err := net.ListenPacket("udp4", addr)
 	if err != nil {
 		return nil, err
 	}
@@ -41,12 +48,17 @@ func NewMulticastListener(port int, inter *net.Interface) (*MSocket, error) {
 	return &MSocket{inter, p}, nil
 }
 
-func NewMulticastSender(group net.IP, port int, inter *net.Interface) (*MSocket, error) {
+func NewMulticastSender(port int, inter *net.Interface) (*MSocket, error) {
 	if inter == nil {
-		inter = GetMulticastInterface()
+		var err error
+		inter, err = GetMulticastInterface()
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	c, err := net.ListenPacket("udp4", "0.0.0.0:"+string(port))
+	addr := fmt.Sprintf(":%d", port)
+	c, err := net.ListenPacket("udp4", addr)
 	if err != nil {
 		return nil, err
 	}
@@ -54,10 +66,6 @@ func NewMulticastSender(group net.IP, port int, inter *net.Interface) (*MSocket,
 	p.SetTOS(0x0)
 	p.SetTTL(16)
 	p.SetMulticastTTL(16)
-
-	if _, err := p.WriteTo(data, nil, dst); err != nil {
-		// error handling
-	}
 
 	return &MSocket{inter, p}, nil
 
@@ -81,7 +89,7 @@ func (ms *MSocket) JoinGroups(group net.IP, n int) {
 }
 
 func (ms *MSocket) JoinGroup(group net.IP) error {
-	if err := ms.conn.JoinGroup(ms.inter, &net.UDPAddr{IP: group}); err != nil {
+	if err := ms.PacketConn.JoinGroup(ms.inter, &net.UDPAddr{IP: group}); err != nil {
 		return err
 	}
 	return nil

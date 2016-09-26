@@ -9,7 +9,7 @@ import (
 )
 
 type Listener struct {
-	Socket  socket.MSocket
+	Socket  *socket.MSocket
 	Seconds int
 	PktSize int
 
@@ -21,18 +21,22 @@ func NewListener(ip net.IP, port int, inc int, seconds int, pktSize int) (*Liste
 	if err != nil {
 		return nil, err
 	}
-	s := socket.NewMulticastListener(port, inter)
-	s.JoinGroup(ip, inc)
-	return &Listener{s, seconds, pktSize, stats}
+	s, err := socket.NewMulticastListener(port, inter)
+	if err != nil {
+		return nil, err
+	}
+	s.JoinGroups(ip, inc)
+	return &Listener{s, seconds, pktSize, stats.NewStats()}, nil
 }
 
 func (l *Listener) Listen() {
 	b := make([]byte, 1500)
 	for {
 		n, cm, src, err := l.Socket.ReadFrom(b)
-		fmt.Printf("%v,%v,%v,%v,%v", string(b), n, cm, src, err)
 		if err != nil {
-			// error handling
+			fmt.Printf("Err Reading: %v", err)
 		}
+		fmt.Printf("%v,%v,%v,%v,%v", string(b), n, cm, src, err)
+
 	}
 }
