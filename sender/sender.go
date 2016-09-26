@@ -30,7 +30,6 @@ func NewSender(ip net.IP, port int, inc int, seconds int, pktSize int) (*Sender,
 func (s *Sender) Send(ip net.IP, port int) error {
 	data := []byte("HEY!!!")
 	dst := &net.UDPAddr{IP: ip, Port: port}
-
 	for {
 		if _, err := s.Socket.WriteTo(data, nil, dst); err != nil {
 			fmt.Println(err)

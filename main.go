@@ -7,6 +7,7 @@ import (
 
 	"github.com/mikeynap/multiperf/receiver"
 	"github.com/mikeynap/multiperf/sender"
+	"github.com/mikeynap/multiperf/socket"
 )
 
 func main() {
@@ -23,10 +24,14 @@ func main() {
 			fmt.Println(e2)
 			return
 		}
-		go s.Send(net.ParseIP("231.0.0.1"), 9999)
-		s2.Send(net.ParseIP("231.0.0.2"), 9999)
+		addr := net.ParseIP("231.0.0.1")
+		for i := 0; i < 99; i++ {
+			go s.Send(addr, 9999)
+			addr = socket.Inc(addr)
+		}
+		s2.Send(addr, 9999)
 	} else {
-		r, e := receiver.NewListener(net.ParseIP("231.0.0.1"), 9999, 2, 5, 1316)
+		r, e := receiver.NewListener(net.ParseIP("231.0.0.1"), 9999, 100, 5, 1316)
 		if e != nil {
 			fmt.Println(e)
 			return

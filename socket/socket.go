@@ -71,7 +71,7 @@ func NewMulticastSender(ip net.IP, port int, inter *net.Interface) (*MSocket, er
 
 }
 
-func inc(ip net.IP) net.IP {
+func Inc(ip net.IP) net.IP {
 	for j := len(ip) - 1; j >= 0; j-- {
 		ip[j]++
 		if ip[j] > 0 {
@@ -84,7 +84,7 @@ func inc(ip net.IP) net.IP {
 func (ms *MSocket) JoinGroups(group net.IP, n int) {
 	for i := 0; i < n; i++ {
 		ms.JoinGroup(group)
-		group = inc(group)
+		group = Inc(group)
 		fmt.Println(group)
 	}
 }
