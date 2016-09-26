@@ -24,6 +24,7 @@ func main() {
 				addr = socket.Inc(addr)
 				fmt.Printf("%d: %v\n", i, addr2)
 			} else {
+				fmt.Println("Uh errorz")
 				fmt.Println(e)
 			}
 		}

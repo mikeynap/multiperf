@@ -23,7 +23,7 @@ func NewSender(ip net.IP, port int, inc int, seconds int, pktSize int) (*Sender,
 	if err != nil {
 		return nil, err
 	}
-	s.JoinGroups(ip, inc)
+	s.JoinGroup(ip)
 	return &Sender{s, seconds, pktSize}, nil
 }
 
